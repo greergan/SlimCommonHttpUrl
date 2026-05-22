@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 #ifndef DEBUG
 #include <slim/common/log.h>
@@ -10,264 +11,39 @@
 
 #include <slim/SlimValue.hpp>
 
-#define SLIMCOMMONHTTPURL_VERSION "@SLIMLIB_VERSION@"
-#define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMLIB_GIT_HASH@"
-#define SLIMCOMMONHTTPURL_VERSION_FULL "@SLIMLIB_VERSION_FULL@"
+#define SLIMCOMMONHTTPURL_VERSION "@SLIMCOMMONHTTPURL_VERSION@"
+#define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMCOMMONHTTPURL_GIT_HASH@"
 
+namespace slim::common::http::url {
+	slim::SlimValue can_parse(std::string_view _string);
+	std::string_view control_character_to_string(const int _character);
+	//slim::SlimValue is_valid_scheme(string_view _string, const size_t _length, int& _start, int& _end);
+	//bool is_valid_ip(const char* _string, size_t _length);
+	//slim::SlimValue is_valid_host(const char* _string, size_t _length, int& end);
+	//bool is_valid_path(const char* _string, size_t _length);
+};
 namespace slim::common::http {
-	enum struct ParseState : uint8_t {
-		PROTOCOL,
-		AUTHORITY,
-		HOST,
-		PORT,
-		PATH,
-		SEARCH,
-		SEARCH_PARAMS,
-		FRAGMENT,
-		INVALID
-	};
-
-/* struct URLParser {
-	const char* url_string;
-	size_t url_length;
-	size_t position = 0;
-
-	ParseState state = ParseState::PROTOCOL;
-
-	SlimValue return_value;
-
-	slim_coordinates protocol_range{ -1, -1 };
-	slim_coordinates authority_range{ -1, -1 };
-	slim_coordinates host_range{ -1, -1 };
-	slim_coordinates port_range{ -1, -1 };
-	slim_coordinates path_range{ -1, -1 };
-	slim_coordinates search_range{ -1, -1 };
-	slim_coordinates fragment_range{ -1, -1 };
-
-	std::unordered_map<std::string, slim_coordinates> search_params_ranges;
-
-	bool is_ip_address = true;
-	int dot_count = 0;
-	int digit_run_length = 0;
-
-	using Handler = void(*)(URLParser&, char);
-
-	static void handle_protocol(URLParser& parser, char character) {
-		auto error_map = parser.return_value.get_multi_map("errors");
-
-		if(parser.protocol_range.first == -1) {
-			parser.protocol_range.first = parser.position;
-		}
-
-		if(character == ':') {
-			parser.protocol_range.second = parser.position;
-			parser.state = ParseState::AUTHORITY;
-		}
-		else if(!((character >= 'a' && character <= 'z') ||
-				  (character >= 'A' && character <= 'Z') ||
-				  (character >= '0' && character <= '9') ||
-				  character == '+' || character == '-' || character == '.')) {
-
-			parser.state = ParseState::INVALID;
-			error_map.set("invalid_protocol_character", std::string("invalid protocol character"));
-		}
-	}
-
-	static void handle_authority(URLParser& parser, char character) {
-		auto error_map = parser.return_value.get_multi_map("errors");
-
-		if(parser.authority_range.first == -1) {
-			parser.authority_range.first = parser.position;
-		}
-
-		if(character == '/' &&
-			parser.position + 1 < parser.url_length &&
-			parser.url_string[parser.position + 1] == '/') {
-
-			parser.position++;
-			parser.state = ParseState::HOST;
-			parser.host_range.first = parser.position + 1;
-
-			parser.is_ip_address = true;
-			parser.dot_count = 0;
-			parser.digit_run_length = 0;
-		}
-		else {
-			parser.state = ParseState::INVALID;
-			error_map.set("missing_authority", std::string("expected \"//\" after protocol"));
-		}
-	}
-
-	static void handle_host(URLParser& parser, char character) {
-		auto error_map = parser.return_value.get_multi_map("errors");
-
-		if(parser.host_range.first == -1) {
-			parser.host_range.first = parser.position;
-		}
-
-		if(character == '/' || character == ':' || character == '?' || character == '#') {
-			parser.host_range.second = parser.position;
-			parser.authority_range.second = parser.position;
-
-			if(character == ':') {
-				parser.state = ParseState::PORT;
-				parser.port_range.first = parser.position + 1;
-			}
-			else if(character == '/') {
-				parser.state = ParseState::PATH;
-				parser.path_range.first = parser.position;
-			}
-			else if(character == '?') {
-				parser.state = ParseState::SEARCH;
-				parser.search_range.first = parser.position + 1;
-			}
-			else if(character == '#') {
-				parser.state = ParseState::FRAGMENT;
-				parser.fragment_range.first = parser.position + 1;
-			}
-
-			parser.position--;
-			return;
-		}
-
-		if(character == '.') {
-			parser.dot_count++;
-			parser.digit_run_length = 0;
-		}
-		else if(character >= '0' && character <= '9') {
-			parser.digit_run_length++;
-		}
-		else {
-			parser.is_ip_address = false;
-		}
-	}
-
-	static void handle_port(URLParser& parser, char character) {
-		if(parser.port_range.first == -1) {
-			parser.port_range.first = parser.position;
-		}
-
-		if(character == '/') {
-			parser.port_range.second = parser.position;
-			parser.state = ParseState::PATH;
-			parser.path_range.first = parser.position;
-		}
-		else if(character == '?') {
-			parser.port_range.second = parser.position;
-			parser.state = ParseState::SEARCH;
-			parser.search_range.first = parser.position + 1;
-		}
-		else if(character == '#') {
-			parser.port_range.second = parser.position;
-			parser.state = ParseState::FRAGMENT;
-			parser.fragment_range.first = parser.position + 1;
-		}
-	}
-
-	static void handle_path(URLParser& parser, char character) {
-		if(parser.path_range.first == -1) {
-			parser.path_range.first = parser.position;
-		}
-
-		if(character == '?') {
-			parser.path_range.second = parser.position;
-			parser.state = ParseState::SEARCH;
-			parser.search_range.first = parser.position + 1;
-		}
-		else if(character == '#') {
-			parser.path_range.second = parser.position;
-			parser.state = ParseState::FRAGMENT;
-			parser.fragment_range.first = parser.position + 1;
-		}
-	}
-
-	static void handle_search(URLParser& parser, char) {
-		parser.search_range.first = parser.position;
-		parser.state = ParseState::SEARCH_PARAMS;
-	}
-
-	static void handle_search_params(URLParser& parser, char character) {
-		if(character == '#') {
-			parser.search_range.second = parser.position;
-			parser.state = ParseState::FRAGMENT;
-			parser.fragment_range.first = parser.position + 1;
-			return;
-		}
-
-		static std::string key;
-		static size_t key_start = 0;
-		static bool reading_key = true;
-
-		if(parser.search_params_ranges.empty()) {
-			key.clear();
-			reading_key = true;
-			key_start = parser.position;
-		}
-
-		if(character == '=') {
-			key.assign(parser.url_string + key_start, parser.position - key_start);
-			reading_key = false;
-		}
-		else if(character == '&') {
-			parser.search_params_ranges[key] = { (int)key_start, (int)parser.position };
-			key.clear();
-			reading_key = true;
-			key_start = parser.position + 1;
-		}
-	}
-
-	static void handle_fragment(URLParser& parser, char) {
-		parser.fragment_range.second = parser.position;
-		parser.state = ParseState::INVALID;
-	}
-
-	static void handle_invalid(URLParser& parser, char) {
-		parser.state = ParseState::INVALID;
-	}
-
-	SlimValue run() {
-		static Handler handlers[] = {
-			handle_protocol,
-			handle_authority,
-			handle_host,
-			handle_port,
-			handle_path,
-			handle_search,
-			handle_search_params,
-			handle_fragment,
-			handle_invalid
-		};
-
-		for(; position < url_length && state != ParseState::INVALID; position++) {
-			handlers[static_cast<int>(state)](*this, url_string[position]);
-		}
-
-		return return_value;
-	}
-}; */
-
 	struct URL {
 		URL();
-		URL(const std::string& _string);
+		URL(std::string_view _string);
 
-		static const slim::SlimValue can_parse(std::string_view _string);
-		const bool is_valid() const;
-		void parse(const std::string& _string);
+		static slim::SlimValue can_parse(std::string_view _string);
+		bool is_valid() const;
+		//void parse(std::string_view _string);
 
-
-		const std::optional<std::string> hash() const;
-		const std::optional<std::string> host() const;
-		const std::optional<std::string> hostname() const;
-		const std::optional<std::string> href() const;
-		const std::optional<std::string> origin() const;
-		const std::optional<std::string> password() const;
-		const std::optional<std::string> pathname() const;
-		const std::optional<std::string> port() const;
-		const std::optional<std::string> protocol() const;
-		const std::optional<std::string> search() const;
-		const std::optional<std::string> searchParams() const;
-		const std::optional<std::string> username() const;
-		const std::optional<std::string> url() const;
+		std::optional<std::string> hash() const;
+		std::optional<std::string> host() const;
+		std::optional<std::string> hostname() const;
+		std::optional<std::string> href() const;
+		std::optional<std::string> origin() const;
+		std::optional<std::string> password() const;
+		std::optional<std::string> pathname() const;
+		std::optional<std::string> port() const;
+		std::string                protocol() const;
+		std::optional<std::string> search() const;
+		std::optional<std::string> searchParams() const;
+		std::optional<std::string> username() const;
+		std::optional<std::string> url() const;
 
 		private:
     		std::optional<std::string> __hash;
@@ -278,7 +54,7 @@ namespace slim::common::http {
 			std::optional<std::string> __password;
 			std::optional<std::string> __pathname;
     		std::optional<std::string> __port;
-			std::optional<std::string> __protocol;
+			std::string                __protocol;
     		std::optional<std::string> __search;
 			std::optional<std::string> __searchParams;
 			std::optional<std::string> __url;

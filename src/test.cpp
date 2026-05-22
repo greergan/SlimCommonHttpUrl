@@ -12,7 +12,19 @@ int main() {
 		"a:",
 		"a:/",
 		"a://",
-		"file://"
+		"ftp://example.com/file.txt",
+		"file://",
+		"file:///",
+		"file:///?",
+		"file:///#",
+		"file:///foo/",
+		"file:///foo/bar",
+		"file:///*",
+		"file:///foo/my(file)[1].txt",
+		"file:///foo/my(file)! [1].txt",
+		"fi le:///foo/my(file)[1].txt",
+		"http://",
+		"https://"
 	};
     log::trace(log::Message{__func__, "begins", __FILE__, __LINE__});
 	
@@ -21,6 +33,16 @@ int main() {
 		log::debug(log::Message{__func__, std::format("can_parse({}) => {}", url, parsable.to_string()), __FILE__, __LINE__});
 		if(parsable.has_error()) {
 			log::error(log::Message{__func__, std::format("can_parse({}) => {}", url, parsable.get_error().message()), __FILE__, __LINE__});
+		}
+
+		if(parsable.has_map("hints")) {
+			auto hints_map = parsable.get_map("hints").get();
+			if(hints_map.size() > 0) {
+				for(auto& [key, value] : hints_map) {
+					auto coordinates = value.get_coordinates();
+					log::debug(log::Message{__func__, std::format("can_parse({}) hint => {} : {} to {}", url, key, coordinates.first, coordinates.second), __FILE__, __LINE__});
+				}
+			}
 		}
 
 		if(parsable.has_map("errors")) {

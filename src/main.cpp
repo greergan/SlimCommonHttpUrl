@@ -47,33 +47,36 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 		slim::slim_coordinates fragment_coords      {-1, -1};
  
 		scheme_coords.first = 0;
+		bool is_file_scheme = false;
  
 		for(size_t string_position = 0; string_position < string_length; ++string_position) {
 			if(state == ParseState::INVALID) break;
  
-			char character = _string[string_position];
+			const unsigned char character = static_cast<unsigned char>(_string[string_position]);
  
-			if(std::iscntrl(static_cast<unsigned char>(character))) {
-				error_map.set("invalid_character", control_character_to_string(character));
+			if(std::iscntrl(character)) {
+				error_map.set("invalid_character", control_character_to_string_view(character));
 				state = ParseState::INVALID;
 				continue;
 			}
-			else if(character == ' ') {
-				error_map.set("invalid_character", "space");
-				state = ParseState::INVALID;
-				continue;
+
+			if(character == ' ') {
+				if(state != ParseState::PATH || (state == ParseState::PATH && !is_file_scheme)) {
+					return_value = false;
+					if(state == ParseState::SCHEME) {
+						error_map.set("scheme", std::format("invalid character in scheme => {}", "space"));
+					}
+					else {
+						error_map.set("invalid_character", "space");
+					}
+					state = ParseState::INVALID;
+					continue;
+				}
 			}
- 
+
 			switch(state) {
 				case ParseState::SCHEME: {
-					if(string_position == static_cast<size_t>(scheme_coords.first)) {
-						if(!std::isalpha(static_cast<unsigned char>(character))) {
-							return_value = false;
-							error_map.set("scheme", "scheme must begin with an alpha character");
-							state = ParseState::INVALID;
-						}
-					}
-					else if(character == ':') {
+					if(character == ':') {
 						if(string_position + 2 < string_length && _string[string_position + 1] == '/' && _string[string_position + 2] == '/') {
 							scheme_coords.second = static_cast<int>(string_position) - 1;
 							string_position += 2;
@@ -90,6 +93,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 							}
 							else {
 								return_value = true;
+								is_file_scheme = (scheme_lower == "file");
 								state = ParseState::AUTHORITY;
 							}
 						}
@@ -99,12 +103,9 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 							state = ParseState::INVALID;
 						}
 					}
-					else if(std::isalnum(static_cast<unsigned char>(character)) ||
-					        character == '+' || character == '-' || character == '.') {
-					}
-					else {
+					else if(!std::isalpha(static_cast<unsigned char>(character))) {
 						return_value = false;
-						error_map.set("scheme", std::format("invalid character in scheme: '{}'", character));
+						error_map.set("scheme", std::format("invalid character in scheme => {}", character));
 						state = ParseState::INVALID;
 					}
 					break;
@@ -149,7 +150,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						search_coords.first = static_cast<int>(string_position) + 1;
 						state = ParseState::SEARCH;
 					}
-					else if(character == '#') {
+					else if(character == '#' && !is_file_scheme) {
 						path_coords.second    = static_cast<int>(string_position) - 1;
 						fragment_coords.first = static_cast<int>(string_position) + 1;
 						state = ParseState::FRAGMENT;
@@ -193,6 +194,23 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 			fragment_coords.second = last;
 		}
  
+		if(is_file_scheme && state != ParseState::INVALID) {
+			if(path_coords.first == -1 || path_coords.first > path_coords.second) {
+				return_value = false;
+				error_map.set("path", "file:// URL must contain a path (e.g. file:///etc/hosts)");
+			}
+			else if(_string[static_cast<size_t>(path_coords.second)] == '/') {
+				return_value = false;
+				error_map.set("path", "file:// URL path must end with a filename, not '/'");
+			}
+		}
+		else if(!is_file_scheme && state != ParseState::INVALID) {
+			if(authority_coords.first == -1) {
+				return_value = false;
+				error_map.set("authority", "URL must contain valid host[:port] (e.g. https://www.google.com)");
+			}
+		}
+
 		hints_map.set("scheme", scheme_coords);
 		if(authority_coords.first != -1) hints_map.set("authority", authority_coords);
 		if(host_coords.first      != -1) hints_map.set("host",      host_coords);
@@ -211,7 +229,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 	return return_value;
 }
 
-std::string_view slim::common::http::url::control_character_to_string(const int _character) {
+std::string_view slim::common::http::url::control_character_to_string_view(const unsigned char _character) {
 	std::string label;
 
 	switch(_character) {
@@ -253,179 +271,6 @@ std::string_view slim::common::http::url::control_character_to_string(const int 
 
 	return label;
 }
-
-/* slim::SlimValue slim::common::http::url::is_valid_host(const char* _string, size_t _length, int& _end) {
-	log::trace(log::Message(__func__, "begins", __FILE__, __LINE__));
-	log::debug(log::Message(__func__, std::format("const char* => \"{}\" => size_t => {}", _string, _length), __FILE__, __LINE__));
-
-	slim::SlimValue return_value;
-
-	if(!_string) {
-		return_value = false;
-		return_value.set_error("string is null");
-	}
-	else if(_length == 0) {
-		return_value = false;
-		return_value.set_error("length is 0");
-	}
-	else if(_length > 253) {
-		return_value = false;
-		return_value.set_error("length exceeds 253");
-	}
-
-	if(return_value.has_error()) {
-		log::debug(log::Message(__func__, return_value.get_error().message_or("failed"), __FILE__, __LINE__));
-		log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-		return return_value;
-	}
-
-	int label_length = 0;
-	int label_count = 0;
-
-	int ipv4_digit_count = 0;
-	int ipv4_dot_count = 0;
-	int ipv4_value = 0;
-	bool ipv4_candidate = true;
-
-	for(size_t character_index = 0; character_index <= _length; character_index++) {
-		char current_character = (character_index < _length) ? _string[character_index] : '.';
-
-		unsigned char unsigned_character = static_cast<unsigned char>(current_character);
-
-		bool is_digit = (unsigned_character ^ '0') <= 9;
-		bool is_letter = ((unsigned_character | 32) - 'a' <= 25);
-		bool is_hyphen = (current_character == '-');
-		bool is_dot = (current_character == '.');
-
-		if(is_digit) {
-			ipv4_value = ipv4_value * 10 + (current_character - '0');
-			ipv4_digit_count++;
-			label_length++;
-			continue;
-		}
-
-		if(is_dot) {
-			ipv4_dot_count++;
-
-			if(ipv4_digit_count == 0 || ipv4_value > 255) {
-				ipv4_candidate = false;
-			}
-
-			ipv4_value = 0;
-			ipv4_digit_count = 0;
-
-			if(label_length == 0 || label_length > 63) {
-				return_value = false;
-				return_value.set_error("invalid label length");
-
-				log::debug(log::Message(__func__, return_value.get_error().message_or("failed"), __FILE__, __LINE__));
-				log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-				return return_value;
-			}
-
-			label_length = 0;
-			label_count++;
-			_end = static_cast<int>(character_index);
-			continue;
-		}
-
-		if(is_letter || is_hyphen) {
-			ipv4_candidate = false;
-			label_length++;
-			continue;
-		}
-
-		return_value = false;
-		return_value.set_error("invalid character in host");
-
-		log::debug(log::Message(__func__, return_value.get_error().message_or("failed"), __FILE__, __LINE__));
-		log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-		return return_value;
-	}
-
-	if(ipv4_candidate && ipv4_dot_count == 3) {
-		return_value = true;
-
-		log::debug(log::Message(__func__, "valid IPv4 host detected", __FILE__, __LINE__));
-		log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-		return return_value;
-	}
-
-	if(label_count == 0 || label_length == 0) {
-		return_value = false;
-		return_value.set_error("invalid host structure");
-
-		log::debug(log::Message(__func__, return_value.get_error().message_or("failed"), __FILE__, __LINE__));
-		log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-		return return_value;
-	}
-
-	_end = static_cast<int>(_length);
-
-	return_value = true;
-
-	log::debug(log::Message(__func__, "valid hostname detected", __FILE__, __LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
-
-	return return_value;
-} */
-
-/*
-slim::SlimValue slim::common::http::url::is_valid_scheme(std::string_view _string, const size_t _length, int& _start, int& _end) {
- 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("const char* => \"{}\" => size_t => {}", _string, _length), __FILE__,__LINE__));
-	slim::SlimValue return_value;
-
-	if(!_string) {
-		return_value = false;
-		return_value.set_error("string is null");
-	}
-	else if(_length < 2) {
-		return_value = false;
-		return_value.set_error("string is too short");
-	}
-
-	if(return_value.has_error()) {
-		log::debug(log::Message(__func__, return_value.get_error().message_or("failed"), __FILE__,__LINE__));
-		log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-		return return_value;
-	}
-
-	size_t character_index = 0;
-	while(character_index < _length && _string[character_index] == ' ') {
-		++character_index;
-	}
-	_start = static_cast<int>(character_index);
-
-	for(; character_index < _length; character_index++) {
-		char current_character = _string[character_index];
-
-		if(current_character == ' ') {
-			return_value = false;
-			return_value.set_error("space not allowed in scheme");
-			break;
-		}
-		else if(current_character == ':') {
-			if(character_index > 0) {
-				_end = static_cast<int>(character_index);
-				return_value = true;
-			} else {
-				return_value = false;
-				return_value.set_error("empty scheme");
-			}
-			break;
-		}
-		else if(!std::isalpha(current_character)) {
-			return_value = false;
-			return_value.set_error("invalid character in scheme");
-			break;
-		}
-	}
-
-	log::debug(log::Message(__func__, return_value.get_error().message_or("success"), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return return_value;
-} */
 
 slim::common::http::URL::URL() {}
 slim::common::http::URL::URL(std::string_view _string) {

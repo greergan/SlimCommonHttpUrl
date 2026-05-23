@@ -46,6 +46,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
  
 		scheme_coords.first = 0;
 		bool is_file_scheme = false;
+		const int max_index = static_cast<int>(string_length) - 1;
  		size_t string_position = 0;
 		for(; string_position < string_length; ++string_position) {
 			if(state == ParseState::INVALID) break;
@@ -123,17 +124,23 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 					}
 					else if(character == '?') {
 						host_coords.second = static_cast<int>(string_position) - 1;
-						search_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							search_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::SEARCH;
 					}
 					else if(character == '#') {
 						host_coords.second = static_cast<int>(string_position) - 1;
-						fragment_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							fragment_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::FRAGMENT;
 					}
 					else if(character == ':') {
 						host_coords.second = static_cast<int>(string_position) - 1;
-						port_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							port_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::PORT;
 					}
 					else if(!std::isalnum(character)) {
@@ -148,12 +155,16 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 				case ParseState::PATH: {
 					if(character == '?') {
 						path_coords.second  = static_cast<int>(string_position) - 1;
-						search_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							search_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::SEARCH;
 					}
 					else if(character == '#' && !is_file_scheme) {
 						path_coords.second    = static_cast<int>(string_position) - 1;
-						fragment_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							fragment_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::FRAGMENT;
 					}
 					break;
@@ -174,7 +185,9 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 				case ParseState::SEARCH: {
 					if(character == '#') {
 						search_coords.second  = static_cast<int>(string_position) - 1;
-						fragment_coords.first = static_cast<int>(string_position) + 1;
+						if(string_position + 1 < string_length) {
+							fragment_coords.first = static_cast<int>(string_position) + 1;
+						}
 						state = ParseState::FRAGMENT;
 					}
 					break;

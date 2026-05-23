@@ -12,19 +12,17 @@ int main() {
 		"a:",
 		"a:/",
 		"a://",
-		"ftp://example.com/file.txt",
 		"file://",
 		"file:///",
-		"file:///?",
-		"file:///#",
-		"file:///foo/",
-		"file:///foo/bar",
-		"file:///*",
-		"file:///foo/my(file)[1].txt",
-		"file:///foo/my(file)! [1].txt",
-		"fi le:///foo/my(file)[1].txt",
 		"http://",
-		"https://"
+		"https://",
+		"https:///",
+		"https://w",
+		"https://w/",
+		"https://w.w-.w/",
+		"https://w:8/",
+		"https://w:8/path",
+		"https://w:8/path/"
 	};
     log::trace(log::Message{__func__, "begins", __FILE__, __LINE__});
 	

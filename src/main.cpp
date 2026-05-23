@@ -9,7 +9,6 @@
 namespace slim::common::http::url {
 	enum struct ParseState : uint8_t {
 		SCHEME,
-		AUTHORITY,
 		HOST,
 		PORT,
 		PATH,
@@ -38,7 +37,6 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 		ParseState state = ParseState::SCHEME;
  
 		slim::slim_coordinates scheme_coords        {-1, -1};
-		slim::slim_coordinates authority_coords     {-1, -1};
 		slim::slim_coordinates host_coords          {-1, -1};
 		slim::slim_coordinates port_coords          {-1, -1};
 		slim::slim_coordinates path_coords          {-1, -1};
@@ -48,8 +46,8 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
  
 		scheme_coords.first = 0;
 		bool is_file_scheme = false;
- 
-		for(size_t string_position = 0; string_position < string_length; ++string_position) {
+ 		size_t string_position = 0;
+		for(; string_position < string_length; ++string_position) {
 			if(state == ParseState::INVALID) break;
  
 			const unsigned char character = static_cast<unsigned char>(_string[string_position]);
@@ -67,7 +65,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						error_map.set("scheme", std::format("invalid character in scheme => {}", "space"));
 					}
 					else {
-						error_map.set("invalid_character", "space");
+						error_map.set("body", std::format("invalid character in URL body => {}", "space"));
 					}
 					state = ParseState::INVALID;
 					continue;
@@ -80,7 +78,9 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						if(string_position + 2 < string_length && _string[string_position + 1] == '/' && _string[string_position + 2] == '/') {
 							scheme_coords.second = static_cast<int>(string_position) - 1;
 							string_position += 2;
-							authority_coords.first = static_cast<int>(string_position) + 1;
+							if(string_position + 1 < string_length) {
+								host_coords.first = static_cast<int>(string_position) + 1;
+							}
 
 							std::string_view scheme = _string.substr(static_cast<size_t>(scheme_coords.first),
 								static_cast<size_t>(scheme_coords.second - scheme_coords.first + 1));
@@ -94,7 +94,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 							else {
 								return_value = true;
 								is_file_scheme = (scheme_lower == "file");
-								state = ParseState::AUTHORITY;
+								state = ParseState::HOST;
 							}
 						}
 						else {
@@ -110,37 +110,38 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 					}
 					break;
 				}
-				case ParseState::AUTHORITY: {
-					if(character == '/') {
-						authority_coords.second = static_cast<int>(string_position) - 1;
-						std::string_view authority = _string.substr(
-							static_cast<size_t>(authority_coords.first),
-							static_cast<size_t>(authority_coords.second - authority_coords.first + 1)
-						);
-						size_t colon_pos = authority.rfind(':');
-						if(colon_pos != std::string_view::npos) {
-							host_coords = {authority_coords.first,
-							               static_cast<int>(static_cast<size_t>(authority_coords.first) + colon_pos) - 1};
-							port_coords = {static_cast<int>(static_cast<size_t>(authority_coords.first) + colon_pos + 1),
-							               authority_coords.second};
-						}
-						else {
-							host_coords = {authority_coords.first, authority_coords.second};
-						}
+				case ParseState::HOST: {
+					if(host_coords.first == static_cast<int>(string_position) && !std::isalnum(character)) {
+						return_value = false;
+						error_map.set("host", std::format("host must begin with alphanumeric data not {}", _string[string_position]));
+						state = ParseState::INVALID;
+					}
+					else if(character == '/') {
+						host_coords.second = static_cast<int>(string_position) - 1;
 						path_coords.first = static_cast<int>(string_position);
 						state = ParseState::PATH;
 					}
 					else if(character == '?') {
-						authority_coords.second = static_cast<int>(string_position) - 1;
-						host_coords = {authority_coords.first, authority_coords.second};
+						host_coords.second = static_cast<int>(string_position) - 1;
 						search_coords.first = static_cast<int>(string_position) + 1;
 						state = ParseState::SEARCH;
 					}
 					else if(character == '#') {
-						authority_coords.second = static_cast<int>(string_position) - 1;
-						host_coords = {authority_coords.first, authority_coords.second};
+						host_coords.second = static_cast<int>(string_position) - 1;
 						fragment_coords.first = static_cast<int>(string_position) + 1;
 						state = ParseState::FRAGMENT;
+					}
+					else if(character == ':') {
+						host_coords.second = static_cast<int>(string_position) - 1;
+						port_coords.first = static_cast<int>(string_position) + 1;
+						state = ParseState::PORT;
+					}
+					else if(!std::isalnum(character)) {
+						if(character != '-' && character != '.') {
+							return_value = false;
+							error_map.set("host", std::format("invalid character in host => {}", _string[string_position]));
+							state = ParseState::INVALID;
+						}
 					}
 					break;
 				}
@@ -154,6 +155,19 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						path_coords.second    = static_cast<int>(string_position) - 1;
 						fragment_coords.first = static_cast<int>(string_position) + 1;
 						state = ParseState::FRAGMENT;
+					}
+					break;
+				}
+				case ParseState::PORT: {
+					if(character == '/') {
+						port_coords.second = static_cast<int>(string_position) - 1;
+						path_coords.first = static_cast<int>(string_position);
+						state = ParseState::PATH;
+					}
+					else if(!std::isdigit(character)) {
+						return_value = false;
+						error_map.set("port", std::format("invalid character in port => {}", _string[string_position]));
+						state = ParseState::INVALID;
 					}
 					break;
 				}
@@ -174,23 +188,25 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 			}
 		}
  
-		int last = static_cast<int>(string_length) - 1;
+		int last = static_cast<int>(string_position) - 1;
  
 		if(state == ParseState::SCHEME) {
 			return_value = false;
 			error_map.set("scheme", "scheme delimiter not found => \"://\"");
 		}
-		else if(state == ParseState::AUTHORITY && authority_coords.first != -1) {
-			authority_coords.second = last;
-			host_coords = {authority_coords.first, last};
+		else if(state == ParseState::HOST && host_coords.first != -1 && host_coords.second == -1) {
+			host_coords.second = last;
 		}
-		else if(state == ParseState::PATH && path_coords.first != -1) {
+		else if(state == ParseState::PORT && port_coords.first != -1 && port_coords.second == -1) {
+			port_coords.second = last;
+		}
+		else if(state == ParseState::PATH && path_coords.first != -1 && path_coords.second == -1) {
 			path_coords.second = last;
 		}
-		else if(state == ParseState::SEARCH && search_coords.first != -1) {
+		else if(state == ParseState::SEARCH && search_coords.first != -1 && search_coords.second == -1) {
 			search_coords.second = last;
 		}
-		else if(state == ParseState::FRAGMENT && fragment_coords.first != -1) {
+		else if(state == ParseState::FRAGMENT && fragment_coords.first != -1 && fragment_coords.second == -1) {
 			fragment_coords.second = last;
 		}
  
@@ -205,19 +221,18 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 			}
 		}
 		else if(!is_file_scheme && state != ParseState::INVALID) {
-			if(authority_coords.first == -1) {
+			if(host_coords.first == -1) {
 				return_value = false;
-				error_map.set("authority", "URL must contain valid host[:port] (e.g. https://www.google.com)");
+				error_map.set("host", "URL must contain valid host[:port] (e.g. https://www.google.com)");
 			}
 		}
 
-		hints_map.set("scheme", scheme_coords);
-		if(authority_coords.first != -1) hints_map.set("authority", authority_coords);
-		if(host_coords.first      != -1) hints_map.set("host",      host_coords);
-		if(port_coords.first      != -1) hints_map.set("port",      port_coords);
-		if(path_coords.first      != -1) hints_map.set("path",      path_coords);
-		if(search_coords.first    != -1) hints_map.set("search",    search_coords);
-		if(fragment_coords.first  != -1) hints_map.set("fragment",  fragment_coords);
+		hints_map.set("scheme",    scheme_coords);
+		hints_map.set("host",      host_coords);
+		hints_map.set("port",      port_coords);
+		hints_map.set("path",      path_coords);
+		hints_map.set("search",    search_coords);
+		hints_map.set("fragment",  fragment_coords);
 	}
  
 	if(error_map.size() > 0) {

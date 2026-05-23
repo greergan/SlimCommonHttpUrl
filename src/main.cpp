@@ -46,7 +46,6 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
  
 		scheme_coords.first = 0;
 		bool is_file_scheme = false;
-		const int max_index = static_cast<int>(string_length) - 1;
  		size_t string_position = 0;
 		for(; string_position < string_length; ++string_position) {
 			if(state == ParseState::INVALID) break;

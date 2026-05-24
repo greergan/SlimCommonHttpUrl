@@ -7,22 +7,10 @@
 int main() {
 	using namespace slim::common;
 	std::set all_urls = {
-		"",
-		"a",
-		"a:",
-		"a:/",
-		"a://",
 		"file://",
 		"file:///",
-		"http://",
-		"https://",
-		"https:///",
-		"https://w",
-		"https://w/",
-		"https://w.w-.w/",
-		"https://w:8/",
-		"https://w:8/path",
-		"https://w:8/path/"
+		"file:///a",
+		"http://example.com/path with spaces"
 	};
     log::trace(log::Message{__func__, "begins", __FILE__, __LINE__});
 	

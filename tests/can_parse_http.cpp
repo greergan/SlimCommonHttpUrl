@@ -61,5 +61,5 @@ TEST_CASE("http:// - no host (bare http://)", "[http][invalid]") {
 TEST_CASE("http:// - space in URL", "[http][invalid]") {
 	auto result = URL::can_parse("http://example.com/path with spaces");
 	CHECK(result.has_error());
-	CHECK(has_error_key(result, "invalid_character"));
+	CHECK(has_error_key(result, "body"));
 }

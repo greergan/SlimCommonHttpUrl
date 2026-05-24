@@ -78,10 +78,6 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						if(string_position + 2 < string_length && _string[string_position + 1] == '/' && _string[string_position + 2] == '/') {
 							scheme_coords.second = static_cast<int>(string_position) - 1;
 							string_position += 2;
-							if(string_position + 1 < string_length) {
-								host_coords.first = static_cast<int>(string_position) + 1;
-							}
-
 							std::string_view scheme = _string.substr(static_cast<size_t>(scheme_coords.first),
 								static_cast<size_t>(scheme_coords.second - scheme_coords.first + 1));
 							std::string scheme_lower{scheme};
@@ -94,7 +90,18 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 							else {
 								return_value = true;
 								is_file_scheme = (scheme_lower == "file");
-								state = ParseState::HOST;
+								if(is_file_scheme) {
+									if(string_position + 1 < string_length) {
+										state = ParseState::PATH;
+										path_coords.first = static_cast<int>(string_position) + 1;
+									}
+								}
+								else {
+									if(string_position + 1 < string_length) {
+										state = ParseState::HOST;
+										host_coords.first = static_cast<int>(string_position) + 1;
+									}
+								}
 							}
 						}
 						else {
@@ -152,19 +159,21 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 					break;
 				}
 				case ParseState::PATH: {
-					if(character == '?') {
-						path_coords.second  = static_cast<int>(string_position) - 1;
-						if(string_position + 1 < string_length) {
-							search_coords.first = static_cast<int>(string_position) + 1;
+					if(!is_file_scheme) {
+						if(character == '?') {
+							path_coords.second  = static_cast<int>(string_position) - 1;
+							if(string_position + 1 < string_length) {
+								search_coords.first = static_cast<int>(string_position) + 1;
+							}
+							state = ParseState::SEARCH;
 						}
-						state = ParseState::SEARCH;
-					}
-					else if(character == '#' && !is_file_scheme) {
-						path_coords.second    = static_cast<int>(string_position) - 1;
-						if(string_position + 1 < string_length) {
-							fragment_coords.first = static_cast<int>(string_position) + 1;
+						else if(character == '#' && !is_file_scheme) {
+							path_coords.second    = static_cast<int>(string_position) - 1;
+							if(string_position + 1 < string_length) {
+								fragment_coords.first = static_cast<int>(string_position) + 1;
+							}
+							state = ParseState::FRAGMENT;
 						}
-						state = ParseState::FRAGMENT;
 					}
 					break;
 				}
@@ -202,9 +211,8 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
  
 		int last = static_cast<int>(string_position) - 1;
  
-		if(state == ParseState::SCHEME) {
-			return_value = false;
-			error_map.set("scheme", "scheme delimiter not found => \"://\"");
+		if(state == ParseState::SCHEME && scheme_coords.first != -1 && scheme_coords.second == -1) {
+			scheme_coords.second = last;
 		}
 		else if(state == ParseState::HOST && host_coords.first != -1 && host_coords.second == -1) {
 			host_coords.second = last;

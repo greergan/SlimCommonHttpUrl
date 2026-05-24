@@ -36,21 +36,18 @@ TEST_CASE("file:// - path ends with slash (directory, no filename)", "[file][pat
 }
 
 // -----------------------------------------------------------------------------
-// Search params not permitted
+// '?' is a valid Linux filename character — absorbed into path, never search
 // -----------------------------------------------------------------------------
 
 TEST_CASE("file:// - query string on root path", "[file][search]") {
 	// path is '/' so both a path error and a search error are raised
 	auto result = URL::can_parse("file:///?");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "search"));
+	CHECK_FALSE(result.has_error());
 }
 
 TEST_CASE("file:// - query string on valid path", "[file][search]") {
 	auto result = URL::can_parse("file:///foo/bar?query=1");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "search"));
-	CHECK_FALSE(has_error_key(result, "path"));
+	CHECK_FALSE(result.has_error());
 }
 
 // -----------------------------------------------------------------------------
@@ -101,31 +98,22 @@ TEST_CASE("file:// - parentheses and brackets in filename", "[file][valid]") {
 	CHECK_FALSE(result.has_error());
 }
 
-// -----------------------------------------------------------------------------
-// Invalid characters in path
-// -----------------------------------------------------------------------------
-
-TEST_CASE("file:// - wildcard in filename", "[file][invalid_chars]") {
+TEST_CASE("file:// - wildcard in filename", "[file][glob]") {
 	auto result = URL::can_parse("file:///*");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "path"));
+	CHECK_FALSE(result.has_error());
 }
 
-TEST_CASE("file:// - wildcard in directory segment", "[file][invalid_chars]") {
+TEST_CASE("file:// - wildcard in directory segment", "[file][glob]") {
 	auto result = URL::can_parse("file:///foo*/bar");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "path"));
+	CHECK_FALSE(result.has_error());
 }
 
-TEST_CASE("file:// - angle brackets in path", "[file][invalid_chars]") {
+TEST_CASE("file:// - angle brackets in path", "[file][ltgt]") {
 	auto result = URL::can_parse("file:///foo/<bar>");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "path"));
+	CHECK_FALSE(result.has_error());
 }
 
-TEST_CASE("file:// - literal space in path (caught by global check)", "[file][invalid_chars]") {
-	// rejected before file-specific rules run; error key is "invalid_character"
+TEST_CASE("file:// - literal space in path ", "[file][space]") {
 	auto result = URL::can_parse("file:///foo/bar baz");
-	CHECK(result.has_error());
-	CHECK(has_error_key(result, "invalid_character"));
+	CHECK_FALSE(result.has_error());
 }

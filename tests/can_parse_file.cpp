@@ -11,6 +11,21 @@ namespace {
 			if(k == key) return true;
 		return false;
 	}
+
+	slim::slim_coordinates get_coordinates(slim::SlimValue& result, const std::string& key) {
+		CHECK(result.has_map("hints"));
+		if(!result.has_map("hints")) return {-1,-1};
+		auto hints_map = result.get_map("hints");
+		CHECK(hints_map.has(key));
+		if(hints_map.has(key)) {
+			auto value_maybe = hints_map.get(key).try_coordinates();
+			CHECK(value_maybe.has_value());
+			if(value_maybe.has_value()) {
+				return value_maybe.value();
+			}
+		}
+		return {-1,-1};
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -116,4 +131,12 @@ TEST_CASE("file:// - angle brackets in path", "[file][ltgt]") {
 TEST_CASE("file:// - literal space in path ", "[file][space]") {
 	auto result = URL::can_parse("file:///foo/bar baz");
 	CHECK_FALSE(result.has_error());
+}
+
+TEST_CASE("file:// - '?' in path is absorbed and path coords span full remainder", "[file][coords]") {
+	auto result = URL::can_parse("file:///foo/bar?query=1");
+	CHECK_FALSE(result.has_error());
+	auto path_coords = get_coordinates(result, "path");
+	CHECK(path_coords.first == 7);
+	CHECK(path_coords.second == 22);
 }

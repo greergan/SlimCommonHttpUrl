@@ -183,6 +183,20 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 						path_coords.first = static_cast<int>(string_position);
 						state = ParseState::PATH;
 					}
+					else if(character == '?') {
+						port_coords.second  = static_cast<int>(string_position) - 1;
+						if(string_position + 1 < string_length) {
+							search_coords.first = static_cast<int>(string_position) + 1;
+						}
+						state = ParseState::SEARCH;
+					}
+					else if(character == '#') {
+						port_coords.second  = static_cast<int>(string_position) - 1;
+						if(string_position + 1 < string_length) {
+							fragment_coords.first = static_cast<int>(string_position) + 1;
+						}
+						state = ParseState::FRAGMENT;
+					}
 					else if(!std::isdigit(character)) {
 						return_value = false;
 						error_map.set("port", std::format("invalid character in port => {}", _string[string_position]));

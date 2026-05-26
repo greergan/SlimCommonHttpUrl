@@ -168,7 +168,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 							state = ParseState::SEARCH;
 						}
 						else if(character == '#' && !is_file_scheme) {
-							path_coords.second    = static_cast<int>(string_position) - 1;
+							path_coords.second = static_cast<int>(string_position) - 1;
 							if(string_position + 1 < string_length) {
 								fragment_coords.first = static_cast<int>(string_position) + 1;
 							}
@@ -349,8 +349,9 @@ void slim::common::http::URL::parse(const slim::SlimValue& _parse_hints) {
 					auto value_maybe = hints_map.get(_key).try_coordinates();
 					if(value_maybe.has_value()) {
 						const auto& coords = value_maybe.value();
-						if(coords.first > -1 && coords.second > coords.first && static_cast<size_t>(coords.second + 1) <= __href.length()) {
-							return __href.substr(static_cast<size_t>(coords.first), static_cast<size_t>(coords.second + 1));
+						if(coords.first > -1 && coords.second >= coords.first && static_cast<size_t>(coords.second) <= __href.length()) {
+							int count = coords.second - coords.first + 1;
+							return __href.substr(static_cast<size_t>(coords.first), static_cast<size_t>(count));
 						}
 					}
 					return {};

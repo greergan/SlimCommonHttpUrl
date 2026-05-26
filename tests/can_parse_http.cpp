@@ -55,6 +55,29 @@ TEST_CASE("can_parse => http:// - host only", "[http][valid]") {
 	CHECK(fragment_coords.second == -1);
 }
 
+TEST_CASE("can_parse => http:// - host with / as path", "[http][valid]") {
+	auto result = URL::can_parse("http://example.com/");
+	CHECK_FALSE(result.has_error());
+	auto scheme_coords = get_coordinates(result, "scheme");
+	CHECK(scheme_coords.first == 0);
+	CHECK(scheme_coords.second == 3);
+ 	auto host_coords = get_coordinates(result, "host");
+	CHECK(host_coords.first == 7);
+	CHECK(host_coords.second == 17);
+ 	auto port_coords = get_coordinates(result, "port");
+	CHECK(port_coords.first == -1);
+	CHECK(port_coords.second == -1);
+ 	auto path_coords = get_coordinates(result, "path");
+	CHECK(path_coords.first == 18);
+	CHECK(path_coords.second == 18);
+ 	auto search_coords = get_coordinates(result, "search");
+	CHECK(search_coords.first == -1);
+	CHECK(search_coords.second == -1);
+ 	auto fragment_coords = get_coordinates(result, "fragment");
+	CHECK(fragment_coords.first == -1);
+	CHECK(fragment_coords.second == -1);
+}
+
 TEST_CASE("can_parse => http:// - host with path", "[http][valid]") {
 	auto result = URL::can_parse("http://example.com/path");
 	CHECK_FALSE(result.has_error());

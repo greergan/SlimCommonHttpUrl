@@ -9,11 +9,36 @@ using slim::common::http::URL;
 // -----------------------------------------------------------------------------
 
 TEST_CASE("http:// - host only", "[http][valid]") {
-	auto result = URL("http://example.com");
+	auto url = URL("http://example.com");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port().empty());
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
+}
+
+TEST_CASE("http:// - host with / as path", "[http][valid]") {
+	auto url = URL("http://example.com/");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port().empty());
+	CHECK(url.pathname() == "/");
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
 TEST_CASE("http:// - host with path", "[http][valid]") {
-	auto result = URL("http://example.com/path");
+	auto url = URL("http://example.com/path");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port().empty());
+	CHECK(url.pathname() == "/path");
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
 TEST_CASE("http:// - host with path and query string", "[http][valid]") {
@@ -24,8 +49,26 @@ TEST_CASE("http:// - host with path, query string, and fragment", "[http][valid]
 	auto url = URL("http://example.com/path?q=hello#section");
 }
 
+TEST_CASE("http:// - host with explicit port and / as path", "[http][valid]") {
+	auto url = URL("http://example.com:8080/");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8080");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8080");
+	CHECK(url.pathname() == "/");
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
+}
+
 TEST_CASE("http:// - host with explicit port and path", "[http][valid]") {
 	auto url = URL("http://example.com:8080/path");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8080");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8080");
+	CHECK(url.pathname() == "/path");
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
 TEST_CASE("http:// - host with explicit port, path and search", "[http][valid]") {

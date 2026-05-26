@@ -323,15 +323,12 @@ std::string_view slim::common::http::url::control_character_to_string_view(const
 
 slim::common::http::URL::URL() {}
 slim::common::http::URL::URL(std::string_view _string) {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	auto result = slim::common::http::url::can_parse(_string);
-	if(result) {
-
-	}
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
+	__href = std::string(_string);
+	auto result = can_parse(_string);
+	parse(result);
 }
 slim::common::http::URL::URL(std::string_view _string, const slim::SlimValue& _parse_hints) {
-	__href = _string;
+	__href = std::string(_string);
 	parse(_parse_hints);
 }
 slim::SlimValue slim::common::http::URL::can_parse(std::string_view _string) {
@@ -343,23 +340,18 @@ slim::SlimValue slim::common::http::URL::can_parse(std::string_view _string) {
 }
 void slim::common::http::URL::parse(const slim::SlimValue& _parse_hints) {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-
 	if(_parse_hints) {
 		if(_parse_hints.has_map("hints")) {
 			auto hints_map = _parse_hints.get_map("hints");
 			if(hints_map.size() > 0) {
 				auto extract = [&](const std::string& _key) -> std::string {
-					if(!hints_map.has(_key)) return {};
+ 					if(!hints_map.has(_key)) return {};
 					auto value_maybe = hints_map.get(_key).try_coordinates();
 					if(value_maybe.has_value()) {
 						const auto& coords = value_maybe.value();
-						if(coords.first != -1 || coords.second != -1 || coords.first > coords.second) {
-							return {};
+						if(coords.first > -1 && coords.second > coords.first && static_cast<size_t>(coords.second + 1) <= __href.length()) {
+							return __href.substr(static_cast<size_t>(coords.first), static_cast<size_t>(coords.second + 1));
 						}
-						return __href.substr(
-							static_cast<size_t>(coords.first),
-							static_cast<size_t>(coords.second - coords.first + 1)
-						);	
 					}
 					return {};
 				};

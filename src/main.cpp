@@ -6,6 +6,8 @@
 #include <slim/common/utilities.h>
 #include <slim/SlimValue.hpp>
 
+#include <slim/common/log.h>
+
 namespace slim::common::http::url {
 	enum struct ParseState : uint8_t {
 		SCHEME,
@@ -18,6 +20,8 @@ namespace slim::common::http::url {
 		INVALID
 	};
 	std::unordered_set<std::string_view> valid_schemes = {"file","http","https","ws","wss"};
+	slim::SlimValue can_parse(std::string_view _string);
+	std::string_view control_character_to_string_view(const unsigned char _character);
 }
 
 slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {

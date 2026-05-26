@@ -1,19 +1,13 @@
 #ifndef __SLIM__COMMON__HTTP__URL__H
 #define __SLIM__COMMON__HTTP__URL__H
 
-#include <optional>
 #include <string>
 #include <string_view>
-#include <slim/common/log.h>
 #include <slim/SlimValue.hpp>
 
 #define SLIMCOMMONHTTPURL_VERSION "@SLIMCOMMONHTTPURL_VERSION@"
 #define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMCOMMONHTTPURL_GIT_HASH@"
 
-namespace slim::common::http::url {
-	slim::SlimValue can_parse(std::string_view _string);
-	std::string_view control_character_to_string_view(const unsigned char _character);
-};
 namespace slim::common::http {
 	struct URL {
 		URL();

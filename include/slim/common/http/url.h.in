@@ -18,40 +18,37 @@ namespace slim::common::http {
 	struct URL {
 		URL();
 		URL(std::string_view _string);
+		URL(std::string_view _string, const slim::SlimValue& parse_hints);
 
 		static slim::SlimValue can_parse(std::string_view _string);
-		bool is_valid() const;
-		//void parse(std::string_view _string);
+		void parse(const slim::SlimValue& _parse_hints);
 
-		std::optional<std::string> hash() const;
-		std::optional<std::string> host() const;
-		std::optional<std::string> hostname() const;
-		std::optional<std::string> href() const;
-		std::optional<std::string> origin() const;
-		std::optional<std::string> password() const;
-		std::optional<std::string> pathname() const;
-		std::optional<std::string> port() const;
-		std::string                protocol() const;
-		std::optional<std::string> search() const;
-		std::optional<std::string> searchParams() const;
-		std::optional<std::string> username() const;
-		std::optional<std::string> url() const;
+		std::string hash() const;
+		std::string host() const;
+		std::string hostname() const;
+		std::string href() const;
+		std::string origin() const;
+		std::string password() const;
+		std::string pathname() const;
+		std::string port() const;
+		std::string protocol() const;
+		std::string search() const;
+		std::string searchParams() const;
+		std::string username() const;
 
 		private:
-    		std::optional<std::string> __hash;
-    		std::optional<std::string> __host;
-			std::optional<std::string> __hostname;
-			std::optional<std::string> __href;
-			std::optional<std::string> __origin;
-			std::optional<std::string> __password;
-			std::optional<std::string> __pathname;
-    		std::optional<std::string> __port;
-			std::string                __protocol;
-    		std::optional<std::string> __search;
-			std::optional<std::string> __searchParams;
-			std::optional<std::string> __url;
-    		std::optional<std::string> __username;
-			bool __is_valid = true;
+    		std::string __hash;
+    		std::string __host;
+			std::string __hostname;
+			std::string __href;
+			std::string __origin;
+			std::string __password;
+			std::string __pathname;
+    		std::string __port;
+			std::string __protocol;
+    		std::string __search;
+			std::string __searchParams;
+    		std::string __username;
     };
 };
 

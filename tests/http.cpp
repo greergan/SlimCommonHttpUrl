@@ -60,6 +60,17 @@ TEST_CASE("http:// - host with explicit port and / as path", "[http][valid]") {
 	CHECK(url.hash().empty());
 }
 
+TEST_CASE("http:// - host with explicit port and / as path with fragment", "[http][valid]") {
+	auto url = URL("http://example.com:8080/#abc");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8080");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8080");
+	CHECK(url.pathname() == "/");
+	CHECK(url.search().empty());
+	CHECK(url.hash() == "abc");
+}
+
 TEST_CASE("http:// - host with explicit port and path", "[http][valid]") {
 	auto url = URL("http://example.com:8080/path");
 	CHECK(url.protocol() == "http");
@@ -69,6 +80,17 @@ TEST_CASE("http:// - host with explicit port and path", "[http][valid]") {
 	CHECK(url.pathname() == "/path");
 	CHECK(url.search().empty());
 	CHECK(url.hash().empty());
+}
+
+TEST_CASE("http:// - host with explicit port, path and fragment", "[http][valid]") {
+	auto url = URL("http://example.com:8080/path#section");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8080");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8080");
+	CHECK(url.pathname() == "/path");
+	CHECK(url.search().empty());
+	CHECK(url.hash() == "section");
 }
 
 TEST_CASE("http:// - host with explicit port, path and search", "[http][valid]") {
@@ -103,30 +125,65 @@ TEST_CASE("http:// - only first error field is recorded when host is invalid", "
 	auto url = URL("http://:abc/path");
 }
 
-TEST_CASE("http:// - root path slash is valid and path coord is set", "[http][coords][regression]") {
+TEST_CASE("http:// - root path slash is valid and path coord is set", "[http][regression]") {
 	auto url = URL("http://example.com/");
 }
 
-TEST_CASE("http:// - host with port and no path is valid", "[http][coords][regression]") {
-	auto url = URL("http://example.com:8080");
+TEST_CASE("http:// - host with port and no path is valid", "[http][regression]") {
+	auto url = URL("http://example.com:80");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:80");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "80");
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
-TEST_CASE("http:// - port followed directly by query string is valid", "[http][coords][regression]") {
+TEST_CASE("http:// - port followed directly by query string is valid", "[http][regression]") {
 	auto url = URL("http://example.com:8080?q=1");
 }
 
-TEST_CASE("http:// - port followed directly by fragment is valid", "[http][coords][regression]") {
-	auto url = URL("http://example.com:8080#section");
-}
-
-TEST_CASE("http:// - port followed directly by bare fragment is valid", "[http][coords][regression]") {
+TEST_CASE("http:// - port followed directly by bare fragment is valid", "[http][regression]") {
 	auto url = URL("http://example.com:8080#");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8080");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8080");
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
-TEST_CASE("http:// - bare fragment '#' with no fragment text is valid", "[http][coords][regression]") {
+TEST_CASE("http:// - bare fragment '#' with no fragment text is valid", "[http][regression]") {
 	auto url = URL("http://example.com#");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port().empty());
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash().empty());
 }
 
-TEST_CASE("http:// - fragment '#' with section is valid", "[http][coords][regression]") {
+TEST_CASE("http:// - fragment '#' with section is valid", "[http][regression]") {
 	auto url = URL("http://example.com#section");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port().empty());
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash() == "section");
+}
+
+TEST_CASE("http:// - host with port and fragment '#' with section is valid", "[http][regression]") {
+	auto url = URL("http://example.com:8090#section");
+	CHECK(url.protocol() == "http");
+	CHECK(url.host() == "example.com:8090");
+	CHECK(url.hostname() == "example.com");
+	CHECK(url.port() == "8090");
+	CHECK(url.pathname().empty());
+	CHECK(url.search().empty());
+	CHECK(url.hash() == "section");
 }

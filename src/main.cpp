@@ -399,61 +399,61 @@ void slim::common::http::URL::parse(const slim::SlimValue& _parse_hints) {
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 }
 
-std::string slim::common::http::URL::hash() const {
+std::string_view slim::common::http::URL::hash() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __hash), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __hash;
 }
-std::string slim::common::http::URL::host() const {
+std::string_view slim::common::http::URL::host() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => host => {}", __host), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __host;
 }
-std::string slim::common::http::URL::hostname() const {
+std::string_view slim::common::http::URL::hostname() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __hostname), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __hostname;
 }
-std::string slim::common::http::URL::href() const {
+std::string_view slim::common::http::URL::href() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __host), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __href;
 }
-std::string slim::common::http::URL::origin() const {
+std::string_view slim::common::http::URL::origin() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __origin), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __origin;
 }
-std::string slim::common::http::URL::password() const {
+std::string_view slim::common::http::URL::password() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __password), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __password;
 }
-std::string slim::common::http::URL::pathname() const {
+std::string_view slim::common::http::URL::pathname() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __pathname), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __pathname;
 }
-std::string slim::common::http::URL::port() const {
+std::string_view slim::common::http::URL::port() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __port), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __port;
 }
-std::string slim::common::http::URL::protocol() const {
+std::string_view slim::common::http::URL::protocol() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __protocol), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __protocol;
 }
-std::string slim::common::http::URL::search() const {
+std::string_view slim::common::http::URL::search() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::error(log::Message(__func__, "full parsing not implemented =>", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, "full parsing not implemented =>", __FILE__,__LINE__));
@@ -461,14 +461,14 @@ std::string slim::common::http::URL::search() const {
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return __search;
 }
-std::string slim::common::http::URL::searchParams() const {
+std::string_view slim::common::http::URL::searchParams() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::error(log::Message(__func__, "not implemented =>", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, "not implemented =>", __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 	return "";
 }
-std::string slim::common::http::URL::username() const {
+std::string_view slim::common::http::URL::username() const {
 	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
 	log::debug(log::Message(__func__, std::format("return => {}", __username), __FILE__,__LINE__));
 	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));

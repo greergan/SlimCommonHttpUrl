@@ -13,6 +13,7 @@ TEST_CASE("http:// - host only", "[http][valid]") {
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port().empty());
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());
@@ -24,6 +25,7 @@ TEST_CASE("http:// - host with / as path", "[http][valid]") {
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port().empty());
 	CHECK(url.pathname() == "/");
 	CHECK(url.search().empty());
@@ -35,6 +37,7 @@ TEST_CASE("http:// - host with path", "[http][valid]") {
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port().empty());
 	CHECK(url.pathname() == "/path");
 	CHECK(url.search().empty());
@@ -54,6 +57,7 @@ TEST_CASE("http:// - host with explicit port and / as path", "[http][valid]") {
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8080");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8080");
 	CHECK(url.port() == "8080");
 	CHECK(url.pathname() == "/");
 	CHECK(url.search().empty());
@@ -65,6 +69,7 @@ TEST_CASE("http:// - host with explicit port and / as path with fragment", "[htt
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8080");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8080");
 	CHECK(url.port() == "8080");
 	CHECK(url.pathname() == "/");
 	CHECK(url.search().empty());
@@ -76,6 +81,7 @@ TEST_CASE("http:// - host with explicit port and path", "[http][valid]") {
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8080");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8080");
 	CHECK(url.port() == "8080");
 	CHECK(url.pathname() == "/path");
 	CHECK(url.search().empty());
@@ -87,6 +93,7 @@ TEST_CASE("http:// - host with explicit port, path and fragment", "[http][valid]
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8080");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8080");
 	CHECK(url.port() == "8080");
 	CHECK(url.pathname() == "/path");
 	CHECK(url.search().empty());
@@ -134,6 +141,7 @@ TEST_CASE("http:// - host with port and no path is valid", "[http][regression]")
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:80");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port() == "80");
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());
@@ -149,6 +157,7 @@ TEST_CASE("http:// - port followed directly by bare fragment is valid", "[http][
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8080");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8080");
 	CHECK(url.port() == "8080");
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());
@@ -160,6 +169,7 @@ TEST_CASE("http:// - bare fragment '#' with no fragment text is valid", "[http][
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port().empty());
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());
@@ -171,6 +181,7 @@ TEST_CASE("http:// - fragment '#' with section is valid", "[http][regression]") 
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com");
 	CHECK(url.port().empty());
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());
@@ -182,6 +193,7 @@ TEST_CASE("http:// - host with port and fragment '#' with section is valid", "[h
 	CHECK(url.protocol() == "http");
 	CHECK(url.host() == "example.com:8090");
 	CHECK(url.hostname() == "example.com");
+	CHECK(url.origin() == "http://example.com:8090");
 	CHECK(url.port() == "8090");
 	CHECK(url.pathname().empty());
 	CHECK(url.search().empty());

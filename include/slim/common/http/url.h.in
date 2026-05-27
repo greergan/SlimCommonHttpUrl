@@ -17,18 +17,18 @@ namespace slim::common::http {
 		static slim::SlimValue can_parse(std::string_view _string);
 		void parse(const slim::SlimValue& _parse_hints);
 
-		std::string hash() const;
-		std::string host() const;
-		std::string hostname() const;
-		std::string href() const;
-		std::string origin() const;
-		std::string password() const;
-		std::string pathname() const;
-		std::string port() const;
-		std::string protocol() const;
-		std::string search() const;
-		std::string searchParams() const;
-		std::string username() const;
+		std::string_view hash() const;
+		std::string_view host() const;
+		std::string_view hostname() const;
+		std::string_view href() const;
+		std::string_view origin() const;
+		std::string_view password() const;
+		std::string_view pathname() const;
+		std::string_view port() const;
+		std::string_view protocol() const;
+		std::string_view search() const;
+		std::string_view searchParams() const;
+		std::string_view username() const;
 
 		private:
     		std::string __hash;

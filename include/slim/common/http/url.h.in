@@ -1,49 +1,49 @@
-#ifndef __SLIM__COMMON__HTTP__URL__H
-#define __SLIM__COMMON__HTTP__URL__H
-
+#ifndef SLIM__COMMON__HTTP__URL__H
+#define SLIM__COMMON__HTTP__URL__H
 #include <string>
 #include <string_view>
-#include <slim/SlimValue.hpp>
+#include <unordered_map>
 
 #define SLIMCOMMONHTTPURL_VERSION "@SLIMCOMMONHTTPURL_VERSION@"
 #define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMCOMMONHTTPURL_GIT_HASH@"
 
 namespace slim::common::http {
-	struct URL {
-		URL();
-		URL(std::string_view _string);
-		URL(std::string_view _string, const slim::SlimValue& parse_hints);
+    using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
 
-		static slim::SlimValue can_parse(std::string_view _string);
-		void parse(const slim::SlimValue& _parse_hints);
+    class URL {
+    public:
+        URL();
+        URL(std::string_view s);
+        URL(std::string_view s, const hints_map& hints);
 
-		std::string_view hash() const;
-		std::string_view host() const;
-		std::string_view hostname() const;
-		std::string_view href() const;
-		std::string_view origin() const;
-		std::string_view password() const;
-		std::string_view pathname() const;
-		std::string_view port() const;
-		std::string_view protocol() const;
-		std::string_view search() const;
-		std::string_view searchParams() const;
-		std::string_view username() const;
+        static bool can_parse(std::string_view s, hints_map& hints);
 
-		private:
-    		std::string __hash;
-    		std::string __host;
-			std::string __hostname;
-			std::string __href;
-			std::string __origin;
-			std::string __password;
-			std::string __pathname;
-    		std::string __port;
-			std::string __protocol;
-    		std::string __search;
-			std::string __searchParams;
-    		std::string __username;
+        std::string_view hash() const noexcept { return hash_; }
+        std::string_view host() const noexcept { return host_; }
+        std::string_view hostname() const noexcept { return hostname_; }
+        std::string_view href() const noexcept { return href_; }
+        std::string_view origin() const noexcept { return origin_; }
+        std::string_view password() const noexcept { return password_; }
+        std::string_view pathname() const noexcept { return pathname_; }
+        std::string_view port() const noexcept { return port_; }
+        std::string_view protocol() const noexcept { return protocol_; }
+        std::string_view search() const noexcept { return search_; }
+        std::string_view searchParams() const noexcept { return searchParams_; }
+        std::string_view username() const noexcept { return username_; }
+
+    private:
+        std::string hash_;
+        std::string host_;
+        std::string hostname_;
+        std::string href_;
+        std::string origin_;
+        std::string password_;
+        std::string pathname_;
+        std::string port_;
+        std::string protocol_;
+        std::string search_;
+        std::string searchParams_;
+        std::string username_;
     };
 };
-
 #endif

@@ -1,3 +1,2 @@
 # PackageName [minVersion [maxVersion]]
-SlimValue 1.3.0
-SlimCommonLog
+SlimCommonHttp 0.2.0

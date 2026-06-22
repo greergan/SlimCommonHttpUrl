@@ -2,44 +2,42 @@
 #include <optional>
 #include <unordered_set>
 #include <string_view>
+
 #include <slim/common/http/url.h>
 #include <slim/common/utilities.h>
+#include <slim/common/http/error_codes.h>
+
 #include <slim/SlimValue.hpp>
 
-#include <slim/common/log.h>
+namespace slim::common::http {
+namespace {
+enum struct ParseState : uint8_t {
+	SCHEME,
+	HOST,
+	PORT,
+	PATH,
+	SEARCH,
+	SEARCH_PARAMS,
+	FRAGMENT,
+	INVALID
+};
+std::unordered_set<std::string_view> valid_schemes = {"file","http","https","ws","wss"};
+slim::SlimValue can_parse(std::string_view _string);
+std::string_view control_character_to_string_view(const unsigned char _character);
 
-namespace slim::common::http::url {
-	enum struct ParseState : uint8_t {
-		SCHEME,
-		HOST,
-		PORT,
-		PATH,
-		SEARCH,
-		SEARCH_PARAMS,
-		FRAGMENT,
-		INVALID
-	};
-	std::unordered_set<std::string_view> valid_schemes = {"file","http","https","ws","wss"};
-	slim::SlimValue can_parse(std::string_view _string);
-	std::string_view control_character_to_string_view(const unsigned char _character);
-}
-
-slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
-	log::trace(log::Message(__func__, "begins", __FILE__, __LINE__));
-	log::debug(log::Message(__func__, std::format("std::string => \"{}\" => size_t => {}", _string, _string.size()), __FILE__, __LINE__));
- 
+slim::SlimValue can_parse(std::string_view _string) {
 	slim::SlimValue return_value = false;
 	size_t string_length = _string.size();
 	auto& error_map = return_value.get_map("errors");
 	auto& hints_map = return_value.get_map("hints");
- 
+
 	if(string_length == 0) {
 		return_value = false;
 		error_map.set("url", "string is empty");
 	}
 	else {
 		ParseState state = ParseState::SCHEME;
- 
+
 		slim::slim_coordinates scheme_coords        {-1, -1};
 		slim::slim_coordinates host_coords          {-1, -1};
 		slim::slim_coordinates port_coords          {-1, -1};
@@ -47,15 +45,15 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 		slim::slim_coordinates search_coords        {-1, -1};
 		slim::slim_coordinates search_params_coords {-1, -1};
 		slim::slim_coordinates fragment_coords      {-1, -1};
- 
+
 		scheme_coords.first = 0;
 		bool is_file_scheme = false;
  		size_t string_position = 0;
 		for(; string_position < string_length; ++string_position) {
 			if(state == ParseState::INVALID) break;
- 
+
 			const unsigned char character = static_cast<unsigned char>(_string[string_position]);
- 
+
 			if(std::iscntrl(character)) {
 				error_map.set("invalid_character", control_character_to_string_view(character));
 				state = ParseState::INVALID;
@@ -226,9 +224,9 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 					break;
 			}
 		}
- 
+
 		int last = static_cast<int>(string_position) - 1;
- 
+
 		if(state == ParseState::SCHEME && scheme_coords.first != -1 && scheme_coords.second == -1) {
 			scheme_coords.second = last;
 		}
@@ -247,7 +245,7 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 		else if(state == ParseState::FRAGMENT && fragment_coords.first != -1 && fragment_coords.second == -1) {
 			fragment_coords.second = last;
 		}
- 
+
 		if(is_file_scheme && state != ParseState::INVALID) {
 			if(path_coords.first == -1 || path_coords.first > path_coords.second) {
 				return_value = false;
@@ -272,17 +270,15 @@ slim::SlimValue slim::common::http::url::can_parse(std::string_view _string) {
 		hints_map.set("search",    search_coords);
 		hints_map.set("fragment",  fragment_coords);
 	}
- 
+
 	if(error_map.size() > 0) {
 		return_value.set_error("URL is unparsable");
 	}
- 
-	log::debug(log::Message(__func__, return_value.get_error().message_or("successful"), __FILE__, __LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__, __LINE__));
+
 	return return_value;
 }
 
-std::string_view slim::common::http::url::control_character_to_string_view(const unsigned char _character) {
+std::string_view control_character_to_string_view(const unsigned char _character) {
 	std::string label;
 
 	switch(_character) {
@@ -324,26 +320,23 @@ std::string_view slim::common::http::url::control_character_to_string_view(const
 
 	return label;
 }
+} // namespace
 
-slim::common::http::URL::URL() {}
-slim::common::http::URL::URL(std::string_view _string) {
+
+URL::URL() {}
+URL::URL(std::string_view _string) {
 	__href = std::string(_string);
 	auto result = can_parse(_string);
 	parse(result);
 }
-slim::common::http::URL::URL(std::string_view _string, const slim::SlimValue& _parse_hints) {
+URL::URL(std::string_view _string, const slim::SlimValue& _parse_hints) {
 	__href = std::string(_string);
 	parse(_parse_hints);
 }
-slim::SlimValue slim::common::http::URL::can_parse(std::string_view _string) {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	auto result = slim::common::http::url::can_parse(_string);
-	log::debug(log::Message(__func__, std::format("{} => returns => {} ", _string, result.to_string()), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return result;
+slim::SlimValue URL::can_parse(std::string_view _string) {
+	return ::can_parse(_string);
 }
-void slim::common::http::URL::parse(const slim::SlimValue& _parse_hints) {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
+void URL::parse(const slim::SlimValue& _parse_hints) {
 	if(_parse_hints) {
 		if(_parse_hints.has_map("hints")) {
 			auto hints_map = _parse_hints.get_map("hints");
@@ -396,81 +389,6 @@ void slim::common::http::URL::parse(const slim::SlimValue& _parse_hints) {
 			}
 		}
 	}
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
 }
 
-std::string_view slim::common::http::URL::hash() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __hash), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __hash;
-}
-std::string_view slim::common::http::URL::host() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => host => {}", __host), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __host;
-}
-std::string_view slim::common::http::URL::hostname() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __hostname), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __hostname;
-}
-std::string_view slim::common::http::URL::href() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __host), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __href;
-}
-std::string_view slim::common::http::URL::origin() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __origin), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __origin;
-}
-std::string_view slim::common::http::URL::password() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __password), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __password;
-}
-std::string_view slim::common::http::URL::pathname() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __pathname), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __pathname;
-}
-std::string_view slim::common::http::URL::port() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __port), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __port;
-}
-std::string_view slim::common::http::URL::protocol() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __protocol), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __protocol;
-}
-std::string_view slim::common::http::URL::search() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::error(log::Message(__func__, "full parsing not implemented =>", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, "full parsing not implemented =>", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __search), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __search;
-}
-std::string_view slim::common::http::URL::searchParams() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::error(log::Message(__func__, "not implemented =>", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, "not implemented =>", __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return "";
-}
-std::string_view slim::common::http::URL::username() const {
-	log::trace(log::Message(__func__, "begins", __FILE__,__LINE__));
-	log::debug(log::Message(__func__, std::format("return => {}", __username), __FILE__,__LINE__));
-	log::trace(log::Message(__func__, "ends", __FILE__,__LINE__));
-	return __username;
-}
+} // namespace slim::common::http

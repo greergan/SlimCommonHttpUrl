@@ -8,7 +8,10 @@ A lightweight, WHATWG-oriented HTTP URL implementation in modern C++.
 Acts as a validating, backing store for the [SlimTS](https://codeberg.org/greergan/SlimTS) Javascript URL object.  
 Part of the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library.  
 Built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
-CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).
+CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
+
+[!IMPORTANT]
+**Required: Complete SearchParams parsing, best to create a SearchParam/SearchParams class similar to Header/Headers**
 
 ## Table of Contents
 

@@ -4,6 +4,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <slim/common/http/error_codes.h>
+
 #define SLIMCOMMONHTTPURL_VERSION "@SLIMCOMMONHTTPURL_VERSION@"
 #define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMCOMMONHTTPURL_GIT_HASH@"
 
@@ -16,7 +18,7 @@ namespace slim::common::http {
         URL(std::string_view s);
         URL(std::string_view s, const hints_map& hints);
 
-        static bool can_parse(std::string_view s, hints_map& hints);
+        static ErrorStatus can_parse(std::string_view s, hints_map& hints);
 
         std::string_view hash() const noexcept { return hash_; }
         std::string_view host() const noexcept { return host_; }
@@ -32,6 +34,8 @@ namespace slim::common::http {
         std::string_view username() const noexcept { return username_; }
 
     private:
+        void parse(const hints_map& hints);
+
         std::string hash_;
         std::string host_;
         std::string hostname_;

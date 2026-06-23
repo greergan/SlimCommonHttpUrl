@@ -24,6 +24,7 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
   - [Constructors and object lifetime](#constructors-and-object-lifetime)
   - [Static methods](#static-methods)
   - [Getters](#getters)
+  - [Friend classes](#friend-classes)
 - [Building](#building)
 - [Dependencies](#dependencies)
 - [Examples](#examples)
@@ -148,6 +149,14 @@ All getters are `const noexcept` and return `std::string_view` into the URL's ow
 | `searchParams() const noexcept` | Serialized search parameters (not yet implemented) |
 | `hash() const noexcept` | Fragment without leading `#` (e.g. `"section"`); empty if absent |
 | `href() const noexcept` | Full original URL string as supplied to the constructor |
+
+[↑ Top](#table-of-contents)
+
+### Friend classes
+
+```cpp
+friend class Request;
+```
 
 [↑ Top](#table-of-contents)
 

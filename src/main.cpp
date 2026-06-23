@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
-#include <string>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
@@ -97,7 +96,6 @@ namespace {
                     break;
                 }
                 case ParseState::HOST: {
-                    // one-time lookahead for '@' when we first enter HOST
                     if (host_coords.first == static_cast<int>(string_position)) {
                         for (size_t i = string_position; i < string_length; ++i) {
                             const char c = s[i];
@@ -112,42 +110,45 @@ namespace {
                                         break;
                                     }
                                 }
-                                if (password_coords.first == -1) {
-                                    // no ':', whole thing is username
-                                    username_coords.second = static_cast<int>(i) - 1;
-                                }
+                                if (password_coords.first == -1) username_coords.second = static_cast<int>(i) - 1;
                                 host_coords.first = static_cast<int>(i) + 1;
                                 string_position = static_cast<size_t>(host_coords.first);
                                 break;
                             }
                         }
+                        if (string_position >= string_length) {
+                            error = ErrorStatus::UrlHostMissing;
+                            state = ParseState::INVALID;
+                            break;
+                        }
                     }
-                    if (host_coords.first == static_cast<int>(string_position) && !slim::common::utilities::is_alnum(static_cast<char>(s[string_position]))) {
+                    const unsigned char current = static_cast<unsigned char>(s[string_position]);
+                    if (host_coords.first == static_cast<int>(string_position) && !slim::common::utilities::is_alnum(static_cast<char>(current))) {
                         error = ErrorStatus::UrlHostInvalidStart;
                         state = ParseState::INVALID;
                     }
-                    else if (character == '/') {
+                    else if (current == '/') {
                         host_coords.second = static_cast<int>(string_position) - 1;
                         path_coords.first = static_cast<int>(string_position);
                         state = ParseState::PATH;
                     }
-                    else if (character == '?') {
+                    else if (current == '?') {
                         host_coords.second = static_cast<int>(string_position) - 1;
                         if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
                         state = ParseState::SEARCH;
                     }
-                    else if (character == '#') {
+                    else if (current == '#') {
                         host_coords.second = static_cast<int>(string_position) - 1;
                         if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
                         state = ParseState::FRAGMENT;
                     }
-                    else if (character == ':') {
+                    else if (current == ':') {
                         host_coords.second = static_cast<int>(string_position) - 1;
                         if (string_position + 1 < string_length) port_coords.first = static_cast<int>(string_position) + 1;
                         state = ParseState::PORT;
                     }
-                    else if (!slim::common::utilities::is_alnum(static_cast<char>(character))) {
-                        if (character != '-' && character != '.') {
+                    else if (!slim::common::utilities::is_alnum(static_cast<char>(current))) {
+                        if (current != '-' && current != '.') {
                             error = ErrorStatus::UrlHostInvalidCharacter;
                             state = ParseState::INVALID;
                         }
@@ -170,20 +171,26 @@ namespace {
                     break;
                 }
                 case ParseState::PORT: {
-                    if (character == '/') {
-                        port_coords.second = static_cast<int>(string_position) - 1;
-                        path_coords.first = static_cast<int>(string_position);
-                        state = ParseState::PATH;
-                    }
-                    else if (character == '?') {
-                        port_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
-                        state = ParseState::SEARCH;
-                    }
-                    else if (character == '#') {
-                        port_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
-                        state = ParseState::FRAGMENT;
+                    if (character == '/' || character == '?' || character == '#') {
+                        if (static_cast<int>(string_position) == port_coords.first) {
+                            port_coords.first = -1;
+                            port_coords.second = -1;
+                        } else {
+                            port_coords.second = static_cast<int>(string_position) - 1;
+                        }
+
+                        if (character == '/') {
+                            path_coords.first = static_cast<int>(string_position);
+                            state = ParseState::PATH;
+                        }
+                        else if (character == '?') {
+                            if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
+                            state = ParseState::SEARCH;
+                        }
+                        else if (character == '#') {
+                            if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
+                            state = ParseState::FRAGMENT;
+                        }
                     }
                     else if (!slim::common::utilities::is_digit(static_cast<char>(character))) {
                         error = ErrorStatus::UrlPortInvalidCharacter;
@@ -212,7 +219,14 @@ namespace {
 
         if (state == ParseState::SCHEME && scheme_coords.first != -1 && scheme_coords.second == -1) scheme_coords.second = last;
         else if (state == ParseState::HOST && host_coords.first != -1 && host_coords.second == -1) host_coords.second = last;
-        else if (state == ParseState::PORT && port_coords.first != -1 && port_coords.second == -1) port_coords.second = last;
+        else if (state == ParseState::PORT && port_coords.first != -1 && port_coords.second == -1) {
+            if (port_coords.first > last) {
+                port_coords.first = -1;
+                port_coords.second = -1;
+            } else {
+                port_coords.second = last;
+            }
+        }
         else if (state == ParseState::PATH && path_coords.first != -1 && path_coords.second == -1) path_coords.second = last;
         else if (state == ParseState::SEARCH && search_coords.first != -1 && search_coords.second == -1) search_coords.second = last;
         else if (state == ParseState::FRAGMENT && fragment_coords.first != -1 && fragment_coords.second == -1) fragment_coords.second = last;
@@ -222,10 +236,8 @@ namespace {
                 if (path_coords.first == -1 || path_coords.first > path_coords.second) error = ErrorStatus::UrlFilePathMissing;
                 else if (s[static_cast<size_t>(path_coords.second)] == '/') error = ErrorStatus::UrlFilePathTrailingSlash;
             }
-            else if (!is_file_scheme) {
-                if (host_coords.first == -1 || host_coords.first > host_coords.second)
-                    error = ErrorStatus::UrlHostMissing;
-            }
+            else if (!is_file_scheme)
+                if (host_coords.first == -1 || host_coords.first > host_coords.second) error = ErrorStatus::UrlHostMissing;
         }
 
         hints["scheme"]   = scheme_coords;

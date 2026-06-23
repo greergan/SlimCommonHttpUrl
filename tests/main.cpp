@@ -762,3 +762,49 @@ TEST_CASE("http:// - URL construction", "[http][construct]") {
         }
     }
 }
+
+TEST_CASE("URL Parsing - Dangling Port Handling", "[http][url][parsing]") {
+    hints_map hints;
+
+    SECTION("URL ending abruptly at the colon") {
+        std::string_view url = "http://example.com:";
+
+        REQUIRE(URL::can_parse(url, hints) == ErrorStatus::OK);
+        CHECK(hints["port"].first == -1);
+        CHECK(hints["port"].second == -1);
+    }
+
+    SECTION("Colon followed immediately by a path") {
+        std::string_view url = "http://example.com:/path";
+
+        REQUIRE(URL::can_parse(url, hints) == ErrorStatus::OK);
+        CHECK(hints["port"].first == -1);
+        CHECK(hints["port"].second == -1);
+        // Ensure path parsing logic remains intact
+        CHECK(hints["path"].first != -1);
+    }
+
+    SECTION("Colon followed by a query string") {
+        std::string_view url = "http://example.com:?query=1";
+
+        REQUIRE(URL::can_parse(url, hints) == ErrorStatus::OK);
+        CHECK(hints["port"].first == -1);
+        CHECK(hints["port"].second == -1);
+        // Ensure search parsing logic remains intact
+        CHECK(hints["search"].first != -1);
+    }
+
+    SECTION("Sanity check: Valid port still parses correctly") {
+        std::string_view url = "http://example.com:8080/path";
+
+        REQUIRE(URL::can_parse(url, hints) == ErrorStatus::OK);
+        CHECK(hints["port"].first != -1);
+        CHECK(hints["port"].second != -1);
+
+        // Verify port value is captured as expected
+        int start = hints["port"].first;
+        int len = hints["port"].second - start + 1;
+        std::string port_str = std::string(url.substr(static_cast<size_t>(start), static_cast<size_t>(len)));
+        CHECK(port_str == "8080");
+    }
+}

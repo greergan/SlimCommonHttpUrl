@@ -18,7 +18,7 @@ namespace slim::common::http {
         URL(std::string_view s);
         URL(std::string_view s, const hints_map& hints);
 
-        static ErrorStatus can_parse(std::string_view s, hints_map& hints);
+        static ErrorStatus can_parse(std::string_view s, hints_map& hints) noexcept;
 
         std::string_view hash() const noexcept { return hash_; }
         std::string_view host() const noexcept { return host_; }
@@ -34,7 +34,7 @@ namespace slim::common::http {
         std::string_view username() const noexcept { return username_; }
 
     private:
-        void parse(const hints_map& hints);
+        void parse(const hints_map& hints) noexcept;
 
         std::string hash_;
         std::string host_;

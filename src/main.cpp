@@ -16,7 +16,7 @@ namespace {
 
     std::unordered_set<std::string_view> valid_schemes = {"file", "http", "https", "ws", "wss"};
 
-    ErrorStatus can_parse_impl(std::string_view s, hints_map& hints) {
+    ErrorStatus can_parse_impl(std::string_view s, hints_map& hints) noexcept{
         size_t string_length = s.size();
 
         if (string_length == 0) return ErrorStatus::UrlStringEmpty;
@@ -24,6 +24,8 @@ namespace {
         ParseState state = ParseState::SCHEME;
 
         std::pair<int, int> scheme_coords{0, -1};
+        std::pair<int, int> username_coords{-1, -1};
+        std::pair<int, int> password_coords{-1, -1};
         std::pair<int, int> host_coords{-1, -1};
         std::pair<int, int> port_coords{-1, -1};
         std::pair<int, int> path_coords{-1, -1};
@@ -95,7 +97,32 @@ namespace {
                     break;
                 }
                 case ParseState::HOST: {
-                    if (host_coords.first == static_cast<int>(string_position) && !slim::common::utilities::is_alnum(static_cast<char>(character))) {
+                    // one-time lookahead for '@' when we first enter HOST
+                    if (host_coords.first == static_cast<int>(string_position)) {
+                        for (size_t i = string_position; i < string_length; ++i) {
+                            const char c = s[i];
+                            if (c == '/' || c == '?' || c == '#') break;
+                            if (c == '@') {
+                                username_coords.first = static_cast<int>(string_position);
+                                for (size_t j = string_position; j < i; ++j) {
+                                    if (s[j] == ':') {
+                                        username_coords.second = static_cast<int>(j) - 1;
+                                        password_coords.first  = static_cast<int>(j) + 1;
+                                        password_coords.second = static_cast<int>(i) - 1;
+                                        break;
+                                    }
+                                }
+                                if (password_coords.first == -1) {
+                                    // no ':', whole thing is username
+                                    username_coords.second = static_cast<int>(i) - 1;
+                                }
+                                host_coords.first = static_cast<int>(i) + 1;
+                                string_position = static_cast<size_t>(host_coords.first);
+                                break;
+                            }
+                        }
+                    }
+                    if (host_coords.first == static_cast<int>(string_position) && !slim::common::utilities::is_alnum(static_cast<char>(s[string_position]))) {
                         error = ErrorStatus::UrlHostInvalidStart;
                         state = ParseState::INVALID;
                     }
@@ -196,15 +223,18 @@ namespace {
                 else if (s[static_cast<size_t>(path_coords.second)] == '/') error = ErrorStatus::UrlFilePathTrailingSlash;
             }
             else if (!is_file_scheme) {
-                if (host_coords.first == -1) error = ErrorStatus::UrlHostMissing;
+                if (host_coords.first == -1 || host_coords.first > host_coords.second)
+                    error = ErrorStatus::UrlHostMissing;
             }
         }
 
-        hints["scheme"] = scheme_coords;
-        hints["host"] = host_coords;
-        hints["port"] = port_coords;
-        hints["path"] = path_coords;
-        hints["search"] = search_coords;
+        hints["scheme"]   = scheme_coords;
+        hints["username"] = username_coords;
+        hints["password"] = password_coords;
+        hints["host"]     = host_coords;
+        hints["port"]     = port_coords;
+        hints["path"]     = path_coords;
+        hints["search"]   = search_coords;
         hints["fragment"] = fragment_coords;
 
         return error;
@@ -226,11 +256,11 @@ URL::URL(std::string_view s, const hints_map& hints) {
     parse(hints);
 }
 
-ErrorStatus URL::can_parse(std::string_view s, hints_map& hints) {
+ErrorStatus URL::can_parse(std::string_view s, hints_map& hints) noexcept {
     return can_parse_impl(s, hints);
 }
 
-void URL::parse(const hints_map& hints) {
+void URL::parse(const hints_map& hints) noexcept {
     if (!hints.empty()) {
         auto extract = [&](const std::string& key) -> std::string {
             auto it = hints.find(key);
@@ -243,12 +273,14 @@ void URL::parse(const hints_map& hints) {
             return {};
         };
 
-        protocol_ = extract("scheme");
-        hostname_ = extract("host");
-        port_ = extract("port");
-        pathname_ = extract("path");
-        search_ = extract("search");
-        hash_ = extract("fragment");
+        protocol_   = extract("scheme");
+        username_   = extract("username");
+        password_   = extract("password");
+        hostname_   = extract("host");
+        port_       = extract("port");
+        pathname_   = extract("path");
+        search_     = extract("search");
+        hash_       = extract("fragment");
 
         if (!hostname_.empty()) {
             if (!port_.empty()) host_ = hostname_ + ":" + port_;

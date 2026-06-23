@@ -28,18 +28,18 @@ TEST_CASE("file:// - can_parse", "[file][can_parse]") {
     SECTION("missing or invalid path") {
         SECTION("no path") {
             hints_map hints;
-            auto error = URL::can_parse("file://", hints);
-            REQUIRE(error == ErrorStatus::UrlFilePathMissing);
+            auto e = URL::can_parse("file://", hints);
+            REQUIRE(e == ErrorStatus::UrlFilePathMissing);
         }
         SECTION("path is only root slash") {
             hints_map hints;
-            auto error = URL::can_parse("file:///", hints);
-            REQUIRE(error == ErrorStatus::UrlFilePathTrailingSlash);
+            auto e = URL::can_parse("file:///", hints);
+            REQUIRE(e == ErrorStatus::UrlFilePathTrailingSlash);
         }
         SECTION("path ends with slash (directory, no filename)") {
             hints_map hints;
-            auto error = URL::can_parse("file:///foo/", hints);
-            REQUIRE(error == ErrorStatus::UrlFilePathTrailingSlash);
+            auto e = URL::can_parse("file:///foo/", hints);
+            REQUIRE(e == ErrorStatus::UrlFilePathTrailingSlash);
         }
     }
 
@@ -111,8 +111,8 @@ TEST_CASE("file:// - can_parse", "[file][can_parse]") {
     SECTION("coordinates") {
         SECTION("'?' absorbed — path coords span full remainder") {
             hints_map hints;
-            auto error = URL::can_parse("file:///foo/bar?query=1", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("file:///foo/bar?query=1", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto coords = get_coordinates(hints, "path");
             REQUIRE(coords.first == 7);
             REQUIRE(coords.second == 22);
@@ -130,8 +130,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host only") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -142,8 +142,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with / as path") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com/", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -154,8 +154,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with path") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/path", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com/path", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -166,8 +166,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with path and query string") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/path?q=hello", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com/path?q=hello", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -178,8 +178,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with path, query string, and fragment") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/path?q=hello#section", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com/path?q=hello#section", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -190,8 +190,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with explicit port and path") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080/path", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080/path", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 19); REQUIRE(port.second     == 22);
@@ -202,8 +202,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with explicit port, path and search") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080/path?q=hello", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080/path?q=hello", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 19); REQUIRE(port.second     == 22);
@@ -214,14 +214,110 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
 
         SECTION("host with explicit port, path, search and fragment") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080/path?q=hello#section", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080/path?q=hello#section", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 19); REQUIRE(port.second     == 22);
             auto path     = get_coordinates(hints, "path");     REQUIRE(path.first     == 23); REQUIRE(path.second     == 27);
             auto search   = get_coordinates(hints, "search");   REQUIRE(search.first   == 29); REQUIRE(search.second   == 35);
             auto fragment = get_coordinates(hints, "fragment"); REQUIRE(fragment.first == 37); REQUIRE(fragment.second == 43);
+        }
+
+        SECTION("username and password") {
+            SECTION("username and password with host only") {
+                // http://user:pass@example.com
+                // scheme: 0-3, username: 7-10, password: 12-15, host: 17-27
+                hints_map hints;
+                auto e = URL::can_parse("http://user:pass@example.com", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 10);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == 12); REQUIRE(password.second == 15);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 17); REQUIRE(host.second     == 27);
+                auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
+                auto path     = get_coordinates(hints, "path");     REQUIRE(path.first     == -1); REQUIRE(path.second     == -1);
+            }
+
+            SECTION("username and password with host and path") {
+                // http://user:pass@example.com/path
+                // scheme: 0-3, username: 7-10, password: 12-15, host: 17-27, path: 28-32
+                hints_map hints;
+                auto e = URL::can_parse("http://user:pass@example.com/path", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 10);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == 12); REQUIRE(password.second == 15);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 17); REQUIRE(host.second     == 27);
+                auto path     = get_coordinates(hints, "path");     REQUIRE(path.first     == 28); REQUIRE(path.second     == 32);
+            }
+
+            SECTION("username and password with host, port and path") {
+                // http://user:pass@example.com:8080/path
+                // scheme: 0-3, username: 7-10, password: 12-15, host: 17-27, port: 29-32, path: 33-37
+                hints_map hints;
+                auto e = URL::can_parse("http://user:pass@example.com:8080/path", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 10);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == 12); REQUIRE(password.second == 15);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 17); REQUIRE(host.second     == 27);
+                auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 29); REQUIRE(port.second     == 32);
+                auto path     = get_coordinates(hints, "path");     REQUIRE(path.first     == 33); REQUIRE(path.second     == 37);
+            }
+
+            SECTION("username only (no password)") {
+                // http://user@example.com
+                // scheme: 0-3, username: 7-10, password: -1--1, host: 12-22
+                hints_map hints;
+                auto e = URL::can_parse("http://user@example.com", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 10);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == -1); REQUIRE(password.second == -1);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 12); REQUIRE(host.second     == 22);
+            }
+
+            SECTION("username only with path") {
+                // http://user@example.com/path
+                // scheme: 0-3, username: 7-10, password: -1--1, host: 12-22, path: 23-27
+                hints_map hints;
+                auto e = URL::can_parse("http://user@example.com/path", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 10);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == -1); REQUIRE(password.second == -1);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 12); REQUIRE(host.second     == 22);
+                auto path     = get_coordinates(hints, "path");     REQUIRE(path.first     == 23); REQUIRE(path.second     == 27);
+            }
+
+            SECTION("empty username with password") {
+                // http://:pass@example.com
+                // scheme: 0-3, username: 7-6 (empty), password: 8-11, host: 13-23
+                hints_map hints;
+                auto e = URL::can_parse("http://:pass@example.com", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 6);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == 8);  REQUIRE(password.second == 11);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 13); REQUIRE(host.second     == 23);
+            }
+
+            SECTION("empty username and empty password") {
+                // http://@example.com
+                // scheme: 0-3, username: 7-6 (empty), password: -1--1, host: 8-18
+                hints_map hints;
+                auto e = URL::can_parse("http://@example.com", hints);
+                REQUIRE(e == ErrorStatus::OK);
+                auto username = get_coordinates(hints, "username"); REQUIRE(username.first == 7);  REQUIRE(username.second == 6);
+                auto password = get_coordinates(hints, "password"); REQUIRE(password.first == -1); REQUIRE(password.second == -1);
+                auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 8);  REQUIRE(host.second     == 18);
+            }
+
+            SECTION("@ with no host returns UrlHostMissing") {
+                hints_map hints;
+                REQUIRE(URL::can_parse("http://user@", hints) == ErrorStatus::UrlHostMissing);
+            }
+
+            SECTION("@ with no host or userinfo returns UrlHostMissing") {
+                hints_map hints;
+                REQUIRE(URL::can_parse("http://@", hints) == ErrorStatus::UrlHostMissing);
+            }
         }
     }
 
@@ -232,46 +328,39 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("scheme starting with digit") {
             hints_map hints;
-            auto error = URL::can_parse("1http://example.com", hints);
-            REQUIRE(error == ErrorStatus::UrlSchemeInvalidCharacter);
+            auto e = URL::can_parse("1http://example.com", hints);
+            REQUIRE(e == ErrorStatus::UrlSchemeInvalidCharacter);
         }
         SECTION("space in URL") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/path with spaces", hints);
-            REQUIRE(error == ErrorStatus::UrlBodyInvalidCharacter);
+            auto e = URL::can_parse("http://example.com/path with spaces", hints);
+            REQUIRE(e == ErrorStatus::UrlBodyInvalidCharacter);
         }
         SECTION("empty scheme") {
-            // Scheme coordinates collapse to a zero-length substring ([0, -1] before the
-            // "://" delimiter), so the empty scheme fails the valid_schemes membership
-            // check rather than the per-character alpha check.
             hints_map hints;
-            auto error = URL::can_parse("://example.com", hints);
-            REQUIRE(error == ErrorStatus::UrlSchemeUnsupported);
+            auto e = URL::can_parse("://example.com", hints);
+            REQUIRE(e == ErrorStatus::UrlSchemeUnsupported);
         }
         SECTION("colon directly after authority delimiter, before digits") {
-            // The HOST-state character check tests "is this the first host character and
-            // is it non-alnum" before any other branch (including the ':' transition to
-            // PORT), so an empty host immediately followed by ':' is caught right here
-            // as UrlHostInvalidStart — it never reaches PORT-state validation at all.
             hints_map hints;
-            auto error = URL::can_parse("http://:abc/path", hints);
-            REQUIRE(error == ErrorStatus::UrlHostInvalidStart);
+            auto e = URL::can_parse("http://:abc/path", hints);
+            REQUIRE(e == ErrorStatus::UrlHostInvalidStart);
         }
     }
 
     SECTION("regression") {
         SECTION("root path slash is valid") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com/", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com/", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme = get_coordinates(hints, "scheme"); REQUIRE(scheme.first == 0);  REQUIRE(scheme.second == 3);
             auto host   = get_coordinates(hints, "host");   REQUIRE(host.first   == 7);  REQUIRE(host.second   == 17);
             auto path   = get_coordinates(hints, "path");   REQUIRE(path.first   == 18); REQUIRE(path.second   == 18);
         }
         SECTION("host with port and no path") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme = get_coordinates(hints, "scheme"); REQUIRE(scheme.first == 0);  REQUIRE(scheme.second == 3);
             auto host   = get_coordinates(hints, "host");   REQUIRE(host.first   == 7);  REQUIRE(host.second   == 17);
             auto port   = get_coordinates(hints, "port");   REQUIRE(port.first   == 19); REQUIRE(port.second   == 22);
@@ -279,8 +368,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("port followed directly by query string") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080?q=1", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080?q=1", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme = get_coordinates(hints, "scheme"); REQUIRE(scheme.first == 0);  REQUIRE(scheme.second == 3);
             auto host   = get_coordinates(hints, "host");   REQUIRE(host.first   == 7);  REQUIRE(host.second   == 17);
             auto port   = get_coordinates(hints, "port");   REQUIRE(port.first   == 19); REQUIRE(port.second   == 22);
@@ -289,8 +378,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("port followed directly by fragment") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080#section", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080#section", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 19); REQUIRE(port.second     == 22);
@@ -300,8 +389,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("port followed by bare fragment '#'") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com:8080#", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com:8080#", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == 19); REQUIRE(port.second     == 22);
@@ -311,8 +400,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("bare fragment '#' with no text") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com#", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com#", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -322,8 +411,8 @@ TEST_CASE("http:// - can_parse", "[http][can_parse]") {
         }
         SECTION("fragment '#' with section text") {
             hints_map hints;
-            auto error = URL::can_parse("http://example.com#section", hints);
-            REQUIRE(error == ErrorStatus::OK);
+            auto e = URL::can_parse("http://example.com#section", hints);
+            REQUIRE(e == ErrorStatus::OK);
             auto scheme   = get_coordinates(hints, "scheme");   REQUIRE(scheme.first   == 0);  REQUIRE(scheme.second   == 3);
             auto host     = get_coordinates(hints, "host");     REQUIRE(host.first     == 7);  REQUIRE(host.second     == 17);
             auto port     = get_coordinates(hints, "port");     REQUIRE(port.first     == -1); REQUIRE(port.second     == -1);
@@ -365,6 +454,14 @@ TEST_CASE("https:// - can_parse", "[https][can_parse]") {
             hints_map hints;
             REQUIRE(URL::can_parse("https://example.com#section", hints) == ErrorStatus::OK);
         }
+        SECTION("username and password") {
+            hints_map hints;
+            REQUIRE(URL::can_parse("https://user:pass@example.com/path", hints) == ErrorStatus::OK);
+        }
+        SECTION("username only") {
+            hints_map hints;
+            REQUIRE(URL::can_parse("https://user@example.com/path", hints) == ErrorStatus::OK);
+        }
     }
 
     SECTION("invalid URLs") {
@@ -374,8 +471,12 @@ TEST_CASE("https:// - can_parse", "[https][can_parse]") {
         }
         SECTION("space in URL") {
             hints_map hints;
-            auto error = URL::can_parse("https://example.com/path with spaces", hints);
-            REQUIRE(error == ErrorStatus::UrlBodyInvalidCharacter);
+            auto e = URL::can_parse("https://example.com/path with spaces", hints);
+            REQUIRE(e == ErrorStatus::UrlBodyInvalidCharacter);
+        }
+        SECTION("@ with no host") {
+            hints_map hints;
+            REQUIRE(URL::can_parse("https://user@", hints) == ErrorStatus::UrlHostMissing);
         }
     }
 }
@@ -398,6 +499,8 @@ TEST_CASE("http:// - URL construction", "[http][construct]") {
             CHECK(url.pathname().empty());
             CHECK(url.search().empty());
             CHECK(url.hash().empty());
+            CHECK(url.username().empty());
+            CHECK(url.password().empty());
         }
 
         SECTION("host with / as path") {
@@ -410,6 +513,8 @@ TEST_CASE("http:// - URL construction", "[http][construct]") {
             CHECK(url.pathname() == "/");
             CHECK(url.search().empty());
             CHECK(url.hash().empty());
+            CHECK(url.username().empty());
+            CHECK(url.password().empty());
         }
 
         SECTION("host with path") {
@@ -497,6 +602,68 @@ TEST_CASE("http:// - URL construction", "[http][construct]") {
             CHECK(url.pathname() == "/path");
             CHECK(url.hash()     == "section");
         }
+
+        SECTION("username and password") {
+            SECTION("username and password with host only") {
+                auto url = URL("http://user:pass@example.com");
+                CHECK(url.protocol() == "http");
+                CHECK(url.username() == "user");
+                CHECK(url.password() == "pass");
+                CHECK(url.hostname() == "example.com");
+                CHECK(url.host()     == "example.com");
+                CHECK(url.origin()   == "http://example.com");
+                CHECK(url.port().empty());
+                CHECK(url.pathname().empty());
+            }
+
+            SECTION("username and password with host and path") {
+                auto url = URL("http://user:pass@example.com/path");
+                CHECK(url.username() == "user");
+                CHECK(url.password() == "pass");
+                CHECK(url.hostname() == "example.com");
+                CHECK(url.pathname() == "/path");
+            }
+
+            SECTION("username and password with host, port and path") {
+                auto url = URL("http://user:pass@example.com:8080/path");
+                CHECK(url.username() == "user");
+                CHECK(url.password() == "pass");
+                CHECK(url.hostname() == "example.com");
+                CHECK(url.host()     == "example.com:8080");
+                CHECK(url.origin()   == "http://example.com:8080");
+                CHECK(url.port()     == "8080");
+                CHECK(url.pathname() == "/path");
+            }
+
+            SECTION("username only (no password)") {
+                auto url = URL("http://user@example.com");
+                CHECK(url.username() == "user");
+                CHECK(url.password().empty());
+                CHECK(url.hostname() == "example.com");
+            }
+
+            SECTION("username only with path") {
+                auto url = URL("http://user@example.com/path");
+                CHECK(url.username() == "user");
+                CHECK(url.password().empty());
+                CHECK(url.hostname() == "example.com");
+                CHECK(url.pathname() == "/path");
+            }
+
+            SECTION("empty username with password") {
+                auto url = URL("http://:pass@example.com");
+                CHECK(url.username().empty());
+                CHECK(url.password() == "pass");
+                CHECK(url.hostname() == "example.com");
+            }
+
+            SECTION("empty username and empty password") {
+                auto url = URL("http://@example.com");
+                CHECK(url.username().empty());
+                CHECK(url.password().empty());
+                CHECK(url.hostname() == "example.com");
+            }
+        }
     }
 
     SECTION("invalid URLs throw UrlParseException") {
@@ -513,10 +680,13 @@ TEST_CASE("http:// - URL construction", "[http][construct]") {
             REQUIRE_THROWS_AS(URL("://example.com"), UrlParseException);
         }
         SECTION("invalid host followed by digits-only port") {
-            // See the matching can_parse note above: the HOST-state first-character check
-            // catches the empty host immediately as UrlHostInvalidStart, before any ':'
-            // based transition into PORT state occurs.
             REQUIRE_THROWS_AS(URL("http://:abc/path"), UrlParseException);
+        }
+        SECTION("@ with no host") {
+            REQUIRE_THROWS_AS(URL("http://user@"), UrlParseException);
+        }
+        SECTION("@ with no host or userinfo") {
+            REQUIRE_THROWS_AS(URL("http://@"), UrlParseException);
         }
     }
 

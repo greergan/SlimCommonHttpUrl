@@ -35,6 +35,7 @@ namespace slim::common::http {
 
     private:
         void parse(const hints_map& hints) noexcept;
+        friend class Request;
 
         std::string hash_;
         std::string host_;

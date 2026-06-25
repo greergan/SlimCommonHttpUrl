@@ -13,8 +13,6 @@ namespace slim::common::http {
     using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
 
     class URL {
-        friend class Request;
-
     public:
         URL();
         URL(std::string_view s);
@@ -39,6 +37,7 @@ namespace slim::common::http {
         std::string_view hash() const noexcept { return hash_; }
 
     private:
+        friend class Request;
         void parse(const hints_map& hints) noexcept;
 
         // =================================================================

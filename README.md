@@ -27,6 +27,7 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
   - [Friend classes](#friend-classes)
 - [Building](#building)
 - [Dependencies](#dependencies)
+  - [required_packages](#required_packages)
 - [Examples](#examples)
 
 ## Overview
@@ -168,7 +169,9 @@ This library is built using [SlimLibraryPackager](https://codeberg.org/greergan/
 
 ## Dependencies
 
-External package dependencies for this library are declared in the [`required_packages`](https://codeberg.org/greergan/SlimCommonHttpUrl/src/branch/master/required_packages) file at the repository root. This file is read by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager) during the build process to resolve dependencies and install them if not present.
+### required_packages
+
+External package dependencies for this library are declared in the [`required_packages`](required_packages) file at the repository root. This file is read by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager) during the build process to resolve dependencies and install them if not present.
 
 ```
 SlimCommonHttp 0.2.0

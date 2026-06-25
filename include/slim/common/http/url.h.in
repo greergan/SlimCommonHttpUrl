@@ -1,5 +1,5 @@
-#ifndef SLIM__COMMON__HTTP__URL__H
-#define SLIM__COMMON__HTTP__URL__H
+#ifndef SLIM_COMMON_HTTP_URL_H
+#define SLIM_COMMON_HTTP_URL_H
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -13,6 +13,8 @@ namespace slim::common::http {
     using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
 
     class URL {
+        friend class Request;
+
     public:
         URL();
         URL(std::string_view s);
@@ -20,35 +22,46 @@ namespace slim::common::http {
 
         static ErrorStatus can_parse(std::string_view s, hints_map& hints) noexcept;
 
-        std::string_view hash() const noexcept { return hash_; }
+        // Hot Path Getters (Grouped for cache efficiency)
+        std::string_view href() const noexcept { return href_; }
+        std::string_view protocol() const noexcept { return protocol_; }
         std::string_view host() const noexcept { return host_; }
         std::string_view hostname() const noexcept { return hostname_; }
-        std::string_view href() const noexcept { return href_; }
-        std::string_view origin() const noexcept { return origin_; }
-        std::string_view password() const noexcept { return password_; }
-        std::string_view pathname() const noexcept { return pathname_; }
         std::string_view port() const noexcept { return port_; }
-        std::string_view protocol() const noexcept { return protocol_; }
+        std::string_view pathname() const noexcept { return pathname_; }
         std::string_view search() const noexcept { return search_; }
-        std::string_view searchParams() const noexcept { return searchParams_; }
+
+        // Cold Path Getters
+        std::string_view origin() const noexcept { return origin_; }
         std::string_view username() const noexcept { return username_; }
+        std::string_view password() const noexcept { return password_; }
+        std::string_view searchParams() const noexcept { return searchParams_; }
+        std::string_view hash() const noexcept { return hash_; }
 
     private:
         void parse(const hints_map& hints) noexcept;
-        friend class Request;
 
-        std::string hash_;
+        // =================================================================
+        // MEMORY LAYOUT (Ordered by Access Frequency & Frequency Proximity)
+        // =================================================================
+
+        // Cache Line 1 & 2: Ultra-Hot Core HTTP Properties
+        std::string href_;
+        std::string protocol_;
         std::string host_;
         std::string hostname_;
-        std::string href_;
-        std::string origin_;
-        std::string password_;
+
+        // Cache Line 3: High-Frequency Routing Properties
         std::string pathname_;
         std::string port_;
-        std::string protocol_;
         std::string search_;
+
+        // Cache Line 4 & 5: Warm / Cold Path Properties
+        std::string origin_;
         std::string searchParams_;
         std::string username_;
+        std::string password_;
+        std::string hash_;
     };
 };
-#endif
+#endif // SLIM_COMMON_HTTP_URL_H

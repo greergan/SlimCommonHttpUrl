@@ -6,6 +6,7 @@ using slim::common::http::ErrorStatus;
 using slim::common::http::URL;
 using slim::common::http::hints_map;
 using slim::common::http::UrlParseException;
+using slim::common::http::UrlParseMode;
 
 // =============================================================================
 // Shared helpers
@@ -806,5 +807,92 @@ TEST_CASE("URL Parsing - Dangling Port Handling", "[http][url][parsing]") {
         int len = hints["port"].second - start + 1;
         std::string port_str = std::string(url.substr(static_cast<size_t>(start), static_cast<size_t>(len)));
         CHECK(port_str == "8080");
+    }
+}
+
+// =============================================================================
+// Path-Only parsing — URL construction
+// =============================================================================
+
+TEST_CASE("Path-only parsing", "[url][path_mode]") {
+
+    SECTION("absolute paths") {
+        SECTION("simple path") {
+            auto url = URL("/foo/bar", UrlParseMode::PATH);
+            CHECK(url.pathname() == "/foo/bar");
+            CHECK(url.protocol().empty());
+            CHECK(url.host().empty());
+            CHECK(url.search().empty());
+            CHECK(url.hash().empty());
+        }
+
+        SECTION("path with query string") {
+            auto url = URL("/foo/bar?baz=qux&a=1", UrlParseMode::PATH);
+            CHECK(url.pathname() == "/foo/bar");
+            CHECK(url.search() == "baz=qux&a=1");
+            CHECK(url.hash().empty());
+        }
+
+        SECTION("path with fragment") {
+            auto url = URL("/foo/bar#readme", UrlParseMode::PATH);
+            CHECK(url.pathname() == "/foo/bar");
+            CHECK(url.search().empty());
+            CHECK(url.hash() == "readme"); // or "#readme" depending on your normalization rules
+        }
+
+        SECTION("path with query string and fragment") {
+            auto url = URL("/foo/bar?baz=qux#readme", UrlParseMode::PATH);
+            CHECK(url.pathname() == "/foo/bar");
+            CHECK(url.search() == "baz=qux");
+            CHECK(url.hash() == "readme");
+        }
+    }
+
+    SECTION("relative paths") {
+        SECTION("simple relative path") {
+            auto url = URL("foo/bar", UrlParseMode::PATH);
+            CHECK(url.pathname() == "foo/bar");
+            CHECK(url.host().empty());
+        }
+
+        SECTION("relative path with dot segments") {
+            auto url = URL("../foo/./bar", UrlParseMode::PATH);
+            CHECK(url.pathname() == "../foo/./bar");
+        }
+
+        SECTION("relative path with query and fragment") {
+            auto url = URL("foo/bar?q=1#test", UrlParseMode::PATH);
+            CHECK(url.pathname() == "foo/bar");
+            CHECK(url.search() == "q=1");
+            CHECK(url.hash() == "test");
+        }
+    }
+
+    SECTION("edge cases") {
+        SECTION("root path only") {
+            auto url = URL("/", UrlParseMode::PATH);
+            CHECK(url.pathname() == "/");
+            CHECK(url.search().empty());
+            CHECK(url.hash().empty());
+        }
+
+        SECTION("immediate query string") {
+            auto url = URL("?q=hello", UrlParseMode::PATH);
+            CHECK(url.pathname().empty());
+            CHECK(url.search() == "q=hello");
+            CHECK(url.hash().empty());
+        }
+
+        SECTION("immediate fragment") {
+            auto url = URL("#section-1", UrlParseMode::PATH);
+            CHECK(url.pathname().empty());
+            CHECK(url.search().empty());
+            CHECK(url.hash() == "section-1");
+        }
+
+        SECTION("multiple sequential slashes") {
+            auto url = URL("///foo//bar", UrlParseMode::PATH);
+            CHECK(url.pathname() == "///foo//bar");
+        }
     }
 }

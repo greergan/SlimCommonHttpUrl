@@ -18,13 +18,14 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
 - [Overview](#overview)
 - [Features](#features)
 - [Core API](#core-api)
+  - [hints_map](#hints_map)
+  - [UrlParseMode enum](#urlparsemode-enum)
   - [ErrorStatus enum](#errorstatus-enum)
   - [UrlParseException](#urlparseexception)
   - [URL class](#url-class)
   - [Constructors and object lifetime](#constructors-and-object-lifetime)
   - [Static methods](#static-methods)
   - [Getters](#getters)
-  - [Friend classes](#friend-classes)
 - [Building](#building)
 - [Dependencies](#dependencies)
   - [required_packages](#required_packages)
@@ -51,6 +52,7 @@ This library provides a strict, validation-heavy HTTP URL parser with:
 | Supported schemes | `http`, `https`, `ws`, `wss`, `file` |
 | Hints map | Pre-computed parse offsets passed in to skip redundant scanning |
 | Static pre-check | `can_parse` validates and populates hints without allocating a URL object |
+| Path-only mode | `UrlParseMode::PATH` skips scheme/authority parsing for bare path inputs |
 | Userinfo | Username and password parsed per WHATWG — both default to empty string |
 | Immutable after construction | No setters — parse-once design |
 | Zero-copy reads | All getters return `string_view` into owned storage |
@@ -59,6 +61,33 @@ This library provides a strict, validation-heavy HTTP URL parser with:
 [↑ Top](#table-of-contents)
 
 ## Core API
+
+### hints_map
+
+```cpp
+using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
+```
+
+`hints_map` is an alias for a map of named parse offsets into the URL string. Each entry maps a component name to a `{start, length}` pair describing its byte range within the input. Hints are populated by `can_parse` and consumed by the hinted constructor to skip redundant scanning on construction.
+
+[↑ Top](#table-of-contents)
+
+### UrlParseMode enum
+
+```cpp
+enum struct UrlParseMode : uint8_t { FULL, PATH };
+```
+
+Controls how much of the input the parser processes.
+
+| Value | Description |
+|-------|-------------|
+| `FULL` | Default behaviour — parses the complete URL including scheme, authority, path, query, and fragment |
+| `PATH` | Skips scheme and authority parsing entirely; treats the input as a bare path (and optional query/fragment) only |
+
+Use `PATH` mode when the input is known to be a path string rather than a full URL, avoiding unnecessary validation overhead for scheme and host components.
+
+[↑ Top](#table-of-contents)
 
 ### ErrorStatus enum
 
@@ -117,6 +146,7 @@ slim::common::http::URL u("https://user:pass@example.com:8080/path?q=1#section")
 | `URL()` | Default constructor, produces an empty URL |
 | `URL(std::string_view s)` | Construct and parse from string. Throws `UrlParseException` on failure |
 | `URL(std::string_view s, const hints_map& hints)` | Construct using pre-computed parse hints. No validation — caller must ensure hints are valid |
+| `URL(std::string_view s, UrlParseMode mode)` | Construct with an explicit parse mode. Use `UrlParseMode::PATH` to skip scheme and authority parsing and treat the input as a bare path. Throws `UrlParseException` on failure |
 
 Copy construction and copy assignment are not declared; the compiler-generated defaults apply. Move construction and move assignment are supported via the compiler-generated defaults.
 
@@ -150,14 +180,6 @@ All getters are `const noexcept` and return `std::string_view` into the URL's ow
 | `searchParams() const noexcept` | Serialized search parameters (not yet implemented) |
 | `hash() const noexcept` | Fragment without leading `#` (e.g. `"section"`); empty if absent |
 | `href() const noexcept` | Full original URL string as supplied to the constructor |
-
-[↑ Top](#table-of-contents)
-
-### Friend classes
-
-```cpp
-friend class Request;
-```
 
 [↑ Top](#table-of-contents)
 
@@ -238,6 +260,14 @@ catch (const std::exception& e) {
 slim::common::http::URL u("https://user@example.com/path");
 std::cout << u.username() << '\n'; // -> "user"
 std::cout << u.password() << '\n'; // -> ""
+```
+
+```cpp
+// Path-only mode — skips scheme and authority parsing
+slim::common::http::URL u("/api/v1/resource?filter=active#results", slim::common::http::UrlParseMode::PATH);
+std::cout << u.pathname() << '\n'; // -> "/api/v1/resource"
+std::cout << u.search()   << '\n'; // -> "filter=active"
+std::cout << u.hash()     << '\n'; // -> "results"
 ```
 
 ```cpp

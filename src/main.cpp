@@ -15,10 +15,12 @@ namespace {
 
     std::unordered_set<std::string_view> valid_schemes = {"file", "http", "https", "ws", "wss"};
 
-    ErrorStatus can_parse_impl(std::string_view s, hints_map& hints) noexcept{
+    ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mode = UrlParseMode::FULL) noexcept {
         size_t string_length = s.size();
 
-        if (string_length == 0) return ErrorStatus::UrlStringEmpty;
+        if (string_length == 0) {
+            return ErrorStatus::UrlStringEmpty;
+        }
 
         ParseState state = ParseState::SCHEME;
 
@@ -35,8 +37,16 @@ namespace {
         ErrorStatus error = ErrorStatus::OK;
         size_t string_position = 0;
 
+        if (mode == UrlParseMode::PATH) {
+             state = ParseState::PATH;
+             path_coords.first = 0;
+             scheme_coords.first = -1;
+        }
+
         for (; string_position < string_length; ++string_position) {
-            if (state == ParseState::INVALID) break;
+            if (state == ParseState::INVALID) {
+                break;
+            }
 
             const unsigned char character = static_cast<unsigned char>(s[string_position]);
 
@@ -99,7 +109,9 @@ namespace {
                     if (host_coords.first == static_cast<int>(string_position)) {
                         for (size_t i = string_position; i < string_length; ++i) {
                             const char c = s[i];
-                            if (c == '/' || c == '?' || c == '#') break;
+                            if (c == '/' || c == '?' || c == '#') {
+                                break;
+                            }
                             if (c == '@') {
                                 username_coords.first = static_cast<int>(string_position);
                                 for (size_t j = string_position; j < i; ++j) {
@@ -110,7 +122,9 @@ namespace {
                                         break;
                                     }
                                 }
-                                if (password_coords.first == -1) username_coords.second = static_cast<int>(i) - 1;
+                                if (password_coords.first == -1) {
+                                    username_coords.second = static_cast<int>(i) - 1;
+                                }
                                 host_coords.first = static_cast<int>(i) + 1;
                                 string_position = static_cast<size_t>(host_coords.first);
                                 break;
@@ -134,17 +148,23 @@ namespace {
                     }
                     else if (current == '?') {
                         host_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
+                        if (string_position + 1 < string_length) {
+                            search_coords.first = static_cast<int>(string_position) + 1;
+                        }
                         state = ParseState::SEARCH;
                     }
                     else if (current == '#') {
                         host_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
+                        if (string_position + 1 < string_length) {
+                            fragment_coords.first = static_cast<int>(string_position) + 1;
+                        }
                         state = ParseState::FRAGMENT;
                     }
                     else if (current == ':') {
                         host_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) port_coords.first = static_cast<int>(string_position) + 1;
+                        if (string_position + 1 < string_length) {
+                            port_coords.first = static_cast<int>(string_position) + 1;
+                        }
                         state = ParseState::PORT;
                     }
                     else if (!slim::common::utilities::is_alnum(static_cast<char>(current))) {
@@ -159,12 +179,16 @@ namespace {
                     if (!is_file_scheme) {
                         if (character == '?') {
                             path_coords.second = static_cast<int>(string_position) - 1;
-                            if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
+                            if (string_position + 1 < string_length) {
+                                search_coords.first = static_cast<int>(string_position) + 1;
+                            }
                             state = ParseState::SEARCH;
                         }
                         else if (character == '#' && !is_file_scheme) {
                             path_coords.second = static_cast<int>(string_position) - 1;
-                            if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
+                            if (string_position + 1 < string_length) {
+                                fragment_coords.first = static_cast<int>(string_position) + 1;
+                            }
                             state = ParseState::FRAGMENT;
                         }
                     }
@@ -184,11 +208,15 @@ namespace {
                             state = ParseState::PATH;
                         }
                         else if (character == '?') {
-                            if (string_position + 1 < string_length) search_coords.first = static_cast<int>(string_position) + 1;
+                            if (string_position + 1 < string_length) {
+                                search_coords.first = static_cast<int>(string_position) + 1;
+                            }
                             state = ParseState::SEARCH;
                         }
                         else if (character == '#') {
-                            if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
+                            if (string_position + 1 < string_length) {
+                                fragment_coords.first = static_cast<int>(string_position) + 1;
+                            }
                             state = ParseState::FRAGMENT;
                         }
                     }
@@ -201,7 +229,9 @@ namespace {
                 case ParseState::SEARCH: {
                     if (character == '#') {
                         search_coords.second = static_cast<int>(string_position) - 1;
-                        if (string_position + 1 < string_length) fragment_coords.first = static_cast<int>(string_position) + 1;
+                        if (string_position + 1 < string_length) {
+                            fragment_coords.first = static_cast<int>(string_position) + 1;
+                        }
                         state = ParseState::FRAGMENT;
                     }
                     break;
@@ -210,15 +240,20 @@ namespace {
                     break;
                 }
                 case ParseState::INVALID:
-                default:
+                default: {
                     break;
+                }
             }
         }
 
         int last = static_cast<int>(string_position) - 1;
 
-        if (state == ParseState::SCHEME && scheme_coords.first != -1 && scheme_coords.second == -1) scheme_coords.second = last;
-        else if (state == ParseState::HOST && host_coords.first != -1 && host_coords.second == -1) host_coords.second = last;
+        if (state == ParseState::SCHEME && scheme_coords.first != -1 && scheme_coords.second == -1) {
+            scheme_coords.second = last;
+        }
+        else if (state == ParseState::HOST && host_coords.first != -1 && host_coords.second == -1) {
+            host_coords.second = last;
+        }
         else if (state == ParseState::PORT && port_coords.first != -1 && port_coords.second == -1) {
             if (port_coords.first > last) {
                 port_coords.first = -1;
@@ -227,17 +262,32 @@ namespace {
                 port_coords.second = last;
             }
         }
-        else if (state == ParseState::PATH && path_coords.first != -1 && path_coords.second == -1) path_coords.second = last;
-        else if (state == ParseState::SEARCH && search_coords.first != -1 && search_coords.second == -1) search_coords.second = last;
-        else if (state == ParseState::FRAGMENT && fragment_coords.first != -1 && fragment_coords.second == -1) fragment_coords.second = last;
+        else if (state == ParseState::PATH && path_coords.first != -1 && path_coords.second == -1) {
+            path_coords.second = last;
+        }
+        else if (state == ParseState::SEARCH && search_coords.first != -1 && search_coords.second == -1) {
+            search_coords.second = last;
+        }
+        else if (state == ParseState::FRAGMENT && fragment_coords.first != -1 && fragment_coords.second == -1) {
+            fragment_coords.second = last;
+        }
 
         if (error == ErrorStatus::OK && state != ParseState::INVALID) {
-            if (is_file_scheme) {
-                if (path_coords.first == -1 || path_coords.first > path_coords.second) error = ErrorStatus::UrlFilePathMissing;
-                else if (s[static_cast<size_t>(path_coords.second)] == '/') error = ErrorStatus::UrlFilePathTrailingSlash;
+            if (mode == UrlParseMode::FULL) {
+                if (is_file_scheme) {
+                    if (path_coords.first == -1 || path_coords.first > path_coords.second) {
+                        error = ErrorStatus::UrlFilePathMissing;
+                    }
+                    else if (s[static_cast<size_t>(path_coords.second)] == '/') {
+                        error = ErrorStatus::UrlFilePathTrailingSlash;
+                    }
+                }
+                else if (!is_file_scheme) {
+                    if (host_coords.first == -1 || host_coords.first > host_coords.second) {
+                        error = ErrorStatus::UrlHostMissing;
+                    }
+                }
             }
-            else if (!is_file_scheme)
-                if (host_coords.first == -1 || host_coords.first > host_coords.second) error = ErrorStatus::UrlHostMissing;
         }
 
         hints["scheme"]   = scheme_coords;
@@ -259,12 +309,24 @@ URL::URL(std::string_view s) {
     href_ = std::string(s);
     hints_map hints;
     ErrorStatus error = can_parse_impl(s, hints);
-    if (error != ErrorStatus::OK) throw UrlParseException(error);
+    if (error != ErrorStatus::OK) {
+        throw UrlParseException(error);
+    }
     parse(hints);
 }
 
 URL::URL(std::string_view s, const hints_map& hints) {
     href_ = std::string(s);
+    parse(hints);
+}
+
+URL::URL(std::string_view s, UrlParseMode mode) {
+    href_ = std::string(s);
+    hints_map hints;
+    ErrorStatus error = can_parse_impl(s, hints, mode);
+    if (error != ErrorStatus::OK) {
+        throw UrlParseException(error);
+    }
     parse(hints);
 }
 
@@ -276,7 +338,9 @@ void URL::parse(const hints_map& hints) noexcept {
     if (!hints.empty()) {
         auto extract = [&](const std::string& key) -> std::string {
             auto it = hints.find(key);
-            if (it == hints.end()) return {};
+            if (it == hints.end()) {
+                return {};
+            }
             const auto& coords = it->second;
             if (coords.first > -1 && coords.second >= coords.first && static_cast<size_t>(coords.second) <= href_.length()) {
                 int count = coords.second - coords.first + 1;
@@ -295,8 +359,12 @@ void URL::parse(const hints_map& hints) noexcept {
         hash_       = extract("fragment");
 
         if (!hostname_.empty()) {
-            if (!port_.empty()) host_ = hostname_ + ":" + port_;
-            else host_ = hostname_;
+            if (!port_.empty()) {
+                host_ = hostname_ + ":" + port_;
+            }
+            else {
+                host_ = hostname_;
+            }
         }
 
         origin_ = protocol_ + "://" + hostname_;
@@ -304,13 +372,19 @@ void URL::parse(const hints_map& hints) noexcept {
             bool add_port = false;
 
             if (slim::common::utilities::iequals(protocol_, "http") || slim::common::utilities::iequals(protocol_, "ws")) {
-                if (port_ != "80") add_port = true;
+                if (port_ != "80") {
+                    add_port = true;
+                }
             }
             else if (slim::common::utilities::iequals(protocol_, "https") || slim::common::utilities::iequals(protocol_, "wss")) {
-                if (port_ != "443") add_port = true;
+                if (port_ != "443") {
+                    add_port = true;
+                }
             }
 
-            if (add_port) origin_ += ":" + port_;
+            if (add_port) {
+                origin_ += ":" + port_;
+            }
         }
     }
 }

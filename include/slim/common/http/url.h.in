@@ -14,7 +14,7 @@ namespace slim::common::http {
 
     class URL {
     public:
-        URL();
+        URL() = default;
         URL(std::string_view s);
         URL(std::string_view s, const hints_map& hints);
         URL(std::string_view s, UrlParseMode mode);
@@ -47,7 +47,7 @@ namespace slim::common::http {
         std::string username_;
         std::string password_;
         std::string hash_;
-        void parse(const hints_map& hints) noexcept;
+        ErrorStatus parse(const hints_map& hints) noexcept;
     };
 };
 #endif // SLIM_COMMON_HTTP_URL_H

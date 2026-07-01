@@ -1,4 +1,5 @@
 # PackageName [minVersion [maxVersion]]
 SlimCommonHttp 0.2.0
 SlimCommonUtilities 0.12.0
+SlimCommonHttpUrlSearchParam
 SlimCommonHttpUrlSearchParams

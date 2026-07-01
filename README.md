@@ -10,9 +10,6 @@ Part of the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library.
 Built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
 CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
 
-[!IMPORTANT]
-**Required: Complete SearchParams parsing, best to create a SearchParam/SearchParams class similar to Header/Headers**
-
 ## Table of Contents
 
 - [Overview](#overview)
@@ -54,8 +51,9 @@ This library provides a strict, validation-heavy HTTP URL parser with:
 | Static pre-check | `can_parse` validates and populates hints without allocating a URL object |
 | Path-only mode | `UrlParseMode::PATH` skips scheme/authority parsing for bare path inputs |
 | Userinfo | Username and password parsed per WHATWG — both default to empty string |
-| Immutable after construction | No setters — parse-once design |
-| Zero-copy reads | All getters return `string_view` into owned storage |
+| Query parameters | `searchParams()` exposes structured access via [SlimCommonHttpUrlSearchParams](https://codeberg.org/greergan/SlimCommonHttpUrlSearchParams) |
+| Immutable after construction | No setters on `URL` — parse-once design |
+| Zero-copy reads | `URL` getters return `string_view` into owned storage |
 | Error model | Strong enum-based status reporting via `ErrorStatus` (from [SlimCommonHttp](https://codeberg.org/greergan/SlimCommonHttp)) |
 
 [↑ Top](#table-of-contents)
@@ -164,7 +162,7 @@ Use `can_parse` when you need to validate a URL before committing to constructio
 
 ### Getters
 
-All getters are `const noexcept` and return `std::string_view` into the URL's owned storage. Per the WHATWG standard, all components default to empty string when absent.
+All getters are `const noexcept`. Per the WHATWG standard, all components default to empty string when absent.
 
 | Method | Returns |
 |--------|---------|
@@ -177,7 +175,7 @@ All getters are `const noexcept` and return `std::string_view` into the URL's ow
 | `origin() const noexcept` | Scheme + host + port, excluding default ports 80/443 (e.g. `"https://example.com:8080"`) |
 | `pathname() const noexcept` | Path (e.g. `"/path"`); empty if absent |
 | `search() const noexcept` | Query string without leading `?` (e.g. `"q=1"`); empty if absent |
-| `searchParams() const noexcept` | Serialized search parameters (not yet implemented) |
+| `searchParams() const noexcept` | Returns a `std::shared_ptr<`[`UrlSearchParams`](https://codeberg.org/greergan/SlimCommonHttpUrlSearchParams)`>` giving structured, mutable access to the query parameters |
 | `hash() const noexcept` | Fragment without leading `#` (e.g. `"section"`); empty if absent |
 | `href() const noexcept` | Full original URL string as supplied to the constructor |
 
@@ -196,12 +194,17 @@ This library is built using [SlimLibraryPackager](https://codeberg.org/greergan/
 External package dependencies for this library are declared in the [`required_packages`](required_packages) file at the repository root. This file is read by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager) during the build process to resolve dependencies and install them if not present.
 
 ```
+# PackageName [minVersion [maxVersion]]
 SlimCommonHttp 0.2.0
 SlimCommonUtilities 0.12.0
+SlimCommonHttpUrlSearchParam
+SlimCommonHttpUrlSearchParams
 ```
 
 - [SlimCommonHttp](https://codeberg.org/greergan/SlimCommonHttp)
 - [SlimCommonUtilities](https://codeberg.org/greergan/SlimCommonUtilities)
+- [SlimCommonHttpUrlSearchParam](https://codeberg.org/greergan/SlimCommonHttpUrlSearchParam)
+- [SlimCommonHttpUrlSearchParams](https://codeberg.org/greergan/SlimCommonHttpUrlSearchParams)
 
 [↑ Top](#table-of-contents)
 
@@ -279,6 +282,19 @@ try {
 }
 catch (const slim::common::http::UrlParseException& e) {
     std::cerr << "URL error: " << e.what() << '\n';
+}
+```
+
+```cpp
+// Reading query parameters via searchParams()
+slim::common::http::URL u("https://example.com/search?q=cats&tag=cute&tag=fluffy");
+
+auto params = u.searchParams(); // std::shared_ptr<UrlSearchParams>
+
+std::cout << params->has("q") << '\n'; // -> 1 (true)
+
+if (auto q = params->get("q")) {
+    std::cout << q->get_value() << '\n'; // -> "cats"
 }
 ```
 

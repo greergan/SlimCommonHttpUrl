@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <string_view>
 #include <utility>
@@ -10,6 +12,11 @@
 namespace slim::common::http {
 
 namespace {
+
+using slim::common::utilities::is_alpha;
+using slim::common::utilities::is_alnum;
+using slim::common::utilities::is_digit;
+using slim::common::utilities::iequals;
 
 enum struct ParseState : uint8_t { SCHEME, HOST, PORT, PATH, SEARCH, FRAGMENT, INVALID };
 
@@ -50,7 +57,7 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
 
         const unsigned char character = static_cast<unsigned char>(s[string_position]);
 
-        if (slim::common::utilities::is_cntrl(static_cast<char>(character))) {
+        if (std::iscntrl(character)) {
             error = ErrorStatus::UrlInvalidControlCharacter;
             state = ParseState::INVALID;
             continue;
@@ -75,13 +82,13 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
                                                        static_cast<size_t>(scheme_coords.second - scheme_coords.first + 1));
                     bool scheme_valid = std::any_of(valid_schemes.begin(), valid_schemes.end(),
                                                     [&](std::string_view candidate) {
-                                                        return slim::common::utilities::iequals(scheme, candidate);
+                                                        return iequals(scheme, candidate);
                                                     });
                     if (!scheme_valid) {
                         error = ErrorStatus::UrlSchemeUnsupported;
                         state = ParseState::INVALID;
                     } else {
-                        is_file_scheme = slim::common::utilities::iequals(scheme, "file");
+                        is_file_scheme = iequals(scheme, "file");
                         if (string_position + 1 < string_length) {
                             if (is_file_scheme) {
                                 state             = ParseState::PATH;
@@ -96,7 +103,7 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
                     error = ErrorStatus::UrlSchemeDelimiterMissing;
                     state = ParseState::INVALID;
                 }
-            } else if (!slim::common::utilities::is_alpha(static_cast<char>(character))) {
+            } else if (!is_alpha(static_cast<char>(character))) {
                 error = ErrorStatus::UrlSchemeInvalidCharacter;
                 state = ParseState::INVALID;
             }
@@ -135,7 +142,7 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
             }
             const unsigned char current = static_cast<unsigned char>(s[string_position]);
             if (host_coords.first == static_cast<int>(string_position) &&
-                !slim::common::utilities::is_alnum(static_cast<char>(current))) {
+                !is_alnum(static_cast<char>(current))) {
                 error = ErrorStatus::UrlHostInvalidStart;
                 state = ParseState::INVALID;
             } else if (current == '/') {
@@ -160,7 +167,7 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
                     port_coords.first = static_cast<int>(string_position) + 1;
                 }
                 state = ParseState::PORT;
-            } else if (!slim::common::utilities::is_alnum(static_cast<char>(current)) && current != '-' && current != '.') {
+            } else if (!is_alnum(static_cast<char>(current)) && current != '-' && current != '.') {
                 error = ErrorStatus::UrlHostInvalidCharacter;
                 state = ParseState::INVALID;
             }
@@ -205,7 +212,7 @@ ErrorStatus can_parse_impl(std::string_view s, hints_map& hints, UrlParseMode mo
                     }
                     state = ParseState::FRAGMENT;
                 }
-            } else if (!slim::common::utilities::is_digit(static_cast<char>(character))) {
+            } else if (!is_digit(static_cast<char>(character))) {
                 error = ErrorStatus::UrlPortInvalidCharacter;
                 state = ParseState::INVALID;
             }
@@ -326,6 +333,8 @@ ErrorStatus URL::can_parse(std::string_view s, hints_map& hints) noexcept {
 }
 
 ErrorStatus URL::parse(const hints_map& hints) noexcept {
+    using slim::common::utilities::iequals;
+
     if (hints.empty()) {
         return ErrorStatus::OK;
     }
@@ -358,17 +367,21 @@ ErrorStatus URL::parse(const hints_map& hints) noexcept {
         origin_ = protocol_ + "://" + hostname_;
         if (!port_.empty()) {
             bool add_port = false;
-            if (slim::common::utilities::iequals(protocol_, "http") || slim::common::utilities::iequals(protocol_, "ws")) {
+            if (iequals(protocol_, "http") || iequals(protocol_, "ws")) {
                 add_port = (port_ != "80");
-            } else if (slim::common::utilities::iequals(protocol_, "https") || slim::common::utilities::iequals(protocol_, "wss")) {
+            } else if (iequals(protocol_, "https") || iequals(protocol_, "wss")) {
                 add_port = (port_ != "443");
             }
             if (add_port) {
                 origin_ += ":" + port_;
             }
         }
+
+        search_params_ = std::make_shared<UrlSearchParams>(search_);
     } catch (const std::bad_alloc&) {
         return ErrorStatus::BadAllocation;
+    } catch (const SearchParamParseException& e) {
+        return e.error();
     }
 
     return ErrorStatus::OK;

@@ -1,53 +1,63 @@
 #ifndef SLIM_COMMON_HTTP_URL_H
 #define SLIM_COMMON_HTTP_URL_H
+
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <slim/common/http/error_codes.h>
 
-#define SLIMCOMMONHTTPURL_VERSION "@SLIMCOMMONHTTPURL_VERSION@"
+#include <slim/common/http/error_codes.h>
+#include <slim/common/http/url/search/params.h>
+
+#define SLIMCOMMONHTTPURL_VERSION  "@SLIMCOMMONHTTPURL_VERSION@"
 #define SLIMCOMMONHTTPURL_GIT_HASH "@SLIMCOMMONHTTPURL_GIT_HASH@"
 
 namespace slim::common::http {
-    using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
-    enum struct UrlParseMode : uint8_t { FULL, PATH };
 
-    class URL {
-    public:
-        URL() = default;
-        URL(std::string_view s);
-        URL(std::string_view s, const hints_map& hints);
-        URL(std::string_view s, UrlParseMode mode);
+using hints_map = std::unordered_map<std::string, std::pair<int, int>>;
 
-        static ErrorStatus can_parse(std::string_view s, hints_map& hints) noexcept;
+enum struct UrlParseMode : uint8_t { FULL, PATH };
 
-        std::string_view hash() const noexcept { return hash_; }
-        std::string_view host() const noexcept { return host_; }
-        std::string_view hostname() const noexcept { return hostname_; }
-        std::string_view href() const noexcept { return href_; }
-        std::string_view origin() const noexcept { return origin_; }
-        std::string_view password() const noexcept { return password_; }
-        std::string_view pathname() const noexcept { return pathname_; }
-        std::string_view port() const noexcept { return port_; }
-        std::string_view protocol() const noexcept { return protocol_; }
-        std::string_view search() const noexcept { return search_; }
-        std::string_view searchParams() const noexcept { return searchParams_; }
-        std::string_view username() const noexcept { return username_; }
+class URL {
+public:
+    URL() = default;
+    URL(std::string_view s);
+    URL(std::string_view s, const hints_map& hints);
+    URL(std::string_view s, UrlParseMode mode);
 
-    private:
-        std::string href_;
-        std::string protocol_;
-        std::string host_;
-        std::string hostname_;
-        std::string pathname_;
-        std::string port_;
-        std::string search_;
-        std::string origin_;
-        std::string searchParams_;
-        std::string username_;
-        std::string password_;
-        std::string hash_;
-        ErrorStatus parse(const hints_map& hints) noexcept;
-    };
+    static ErrorStatus can_parse(std::string_view s, hints_map& hints) noexcept;
+
+    std::string_view                        hash()         const noexcept { return hash_; }
+    std::string_view                        host()         const noexcept { return host_; }
+    std::string_view                        hostname()     const noexcept { return hostname_; }
+    std::string_view                        href()         const noexcept { return href_; }
+    std::string_view                        origin()       const noexcept { return origin_; }
+    std::string_view                        password()     const noexcept { return password_; }
+    std::string_view                        pathname()     const noexcept { return pathname_; }
+    std::string_view                        port()         const noexcept { return port_; }
+    std::string_view                        protocol()     const noexcept { return protocol_; }
+    std::string_view                        search()       const noexcept { return search_; }
+    std::shared_ptr<UrlSearchParams>        searchParams() const noexcept { return search_params_; }
+    std::string_view                        username()     const noexcept { return username_; }
+
+private:
+    std::string                      href_;
+    std::string                      protocol_;
+    std::string                      host_;
+    std::string                      hostname_;
+    std::string                      pathname_;
+    std::string                      port_;
+    std::string                      search_;
+    std::string                      origin_;
+    std::shared_ptr<UrlSearchParams> search_params_;
+    std::string                      username_;
+    std::string                      password_;
+    std::string                      hash_;
+
+    ErrorStatus parse(const hints_map& hints) noexcept;
 };
+
+} // namespace slim::common::http
+
 #endif // SLIM_COMMON_HTTP_URL_H

@@ -896,3 +896,134 @@ TEST_CASE("Path-only parsing", "[url][path_mode]") {
         }
     }
 }
+
+TEST_CASE("URL::searchParams basic construction", "[URL][searchParams]") {
+    SECTION("empty query string produces empty searchParams") {
+        URL u("https://example.com/path");
+        REQUIRE(u.searchParams() != nullptr);
+        REQUIRE(u.searchParams()->serialize() == "");
+    }
+    SECTION("single param is parsed") {
+        URL u("https://example.com/path?key=value");
+        REQUIRE(u.searchParams() != nullptr);
+        REQUIRE(u.searchParams()->has("key"));
+        REQUIRE(u.searchParams()->get("key")->get_value() == "value");
+    }
+    SECTION("multiple params are parsed") {
+        URL u("https://example.com/path?a=1&b=2&c=3");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has("a"));
+        REQUIRE(sp->has("b"));
+        REQUIRE(sp->has("c"));
+        REQUIRE(sp->get("a")->get_value() == "1");
+        REQUIRE(sp->get("b")->get_value() == "2");
+        REQUIRE(sp->get("c")->get_value() == "3");
+    }
+    SECTION("duplicate names are preserved") {
+        URL u("https://example.com/?a=1&a=2&a=3");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->get_all("a").size() == 3);
+        REQUIRE(sp->get("a")->get_value() == "1");
+    }
+}
+
+TEST_CASE("URL::searchParams percent-encoding", "[URL][searchParams]") {
+    SECTION("percent-encoded name and value are decoded") {
+        URL u("https://example.com/?ke%20y=val%20ue");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has("ke y"));
+        REQUIRE(sp->get("ke y")->get_value() == "val ue");
+    }
+    SECTION("plus in value decodes to space") {
+        URL u("https://example.com/?key=val+ue");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->get("key")->get_value() == "val ue");
+    }
+    SECTION("plus in name decodes to space") {
+        URL u("https://example.com/?ke+y=value");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has("ke y"));
+    }
+    SECTION("percent-encoded plus stays literal") {
+        URL u("https://example.com/?key=val%2Bue");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->get("key")->get_value() == "val+ue");
+    }
+    SECTION("serialize re-encodes decoded values") {
+        URL u("https://example.com/?ke%20y=val%20ue");
+        REQUIRE(u.searchParams()->serialize() == "ke+y=val+ue");
+    }
+}
+
+TEST_CASE("URL::searchParams mutation does not affect URL", "[URL][searchParams]") {
+    SECTION("append does not change search or href") {
+        URL u("https://example.com/?a=1");
+        u.searchParams()->append("b", "2");
+        REQUIRE(u.search() == "a=1");
+        REQUIRE(u.href() == "https://example.com/?a=1");
+    }
+    SECTION("erase does not change search or href") {
+        URL u("https://example.com/?a=1&b=2");
+        u.searchParams()->erase("a");
+        REQUIRE(u.search() == "a=1&b=2");
+    }
+    SECTION("set does not change search or href") {
+        URL u("https://example.com/?a=1");
+        u.searchParams()->set("a", "99");
+        REQUIRE(u.search() == "a=1");
+    }
+}
+
+TEST_CASE("URL::searchParams shared_ptr semantics", "[URL][searchParams]") {
+    SECTION("two callers share the same instance") {
+        URL u("https://example.com/?a=1");
+        auto sp1 = u.searchParams();
+        auto sp2 = u.searchParams();
+        REQUIRE(sp1 == sp2);
+    }
+    SECTION("mutating via shared_ptr is visible through another reference") {
+        URL u("https://example.com/?a=1");
+        auto sp1 = u.searchParams();
+        auto sp2 = u.searchParams();
+        sp1->append("b", "2");
+        REQUIRE(sp2->has("b"));
+    }
+}
+
+TEST_CASE("URL::searchParams edge cases", "[URL][searchParams]") {
+    SECTION("empty name with value is parsed") {
+        URL u("https://example.com/?=value");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has(""));
+        REQUIRE(sp->get("")->get_value() == "value");
+    }
+    SECTION("name with no value is parsed") {
+        URL u("https://example.com/?key");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has("key"));
+        REQUIRE(sp->get("key")->get_value() == "");
+    }
+    SECTION("empty value is parsed") {
+        URL u("https://example.com/?key=");
+        auto sp = u.searchParams();
+        REQUIRE(sp != nullptr);
+        REQUIRE(sp->has("key"));
+        REQUIRE(sp->get("key")->get_value() == "");
+    }
+    SECTION("no query string produces empty searchParams") {
+        URL u("https://example.com/");
+        REQUIRE(u.searchParams()->serialize() == "");
+    }
+    SECTION("searchParams serialize round-trips") {
+        URL u("https://example.com/?a=1&b=2&c=3");
+        REQUIRE(u.searchParams()->serialize() == "a=1&b=2&c=3");
+    }
+}
